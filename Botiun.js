@@ -44,6 +44,9 @@ function onJoinHandler( target, username, self ) {
   }
   */
   log( `${username} has joined the channel` );
+  database.get( constants.collectionUsers, {
+    twitchID: username
+  } );
 }
 
 function onPartHandler( target, username, self ) {
