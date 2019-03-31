@@ -1,0 +1,28 @@
+{
+  "name": "botiun",
+  "version": "1.0.0",
+  "description": "Twitch bot for Patiun's twitch stream",
+  "main": "Botiun.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Remlik/Botiun.git"
+  },
+  "keywords": [
+    "Twitch",
+    "Bot",
+    "Patiun",
+    "Botiun"
+  ],
+  "author": "Greg Kilmer (Patiun)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Remlik/Botiun/issues"
+  },
+  "homepage": "https://github.com/Remlik/Botiun#readme",
+  "dependencies": {
+    "axios": "^0.18.0"
+  }
+}
