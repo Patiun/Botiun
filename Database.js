@@ -4,6 +4,10 @@ const constants = require( './Constants.js' );
 var MongoClient = require( 'mongodb' ).MongoClient;
 var url = constants.databaseAddress;
 
+//////////////
+//Base Functions
+/////////////
+
 function get( collection, query, projection ) {
   return new Promise( function ( resolve, reject ) {
     MongoClient.connect( url, {
@@ -27,7 +31,7 @@ function insert( collection, newData ) {
       var dbo = db.db( constants.databaseName );
       dbo.collection( collection ).insertOne( newData, function ( err, res ) {
         if ( err ) throw err;
-        console.log( "1 document inserted" );
+        //console.log( "1 document inserted" );
         db.close();
       } );
     } );
@@ -42,14 +46,95 @@ function update( collection, query, newData ) {
       var dbo = db.db( constants.databaseName );
       dbo.collection( collection ).updateOne( query, newData, function ( err, res ) {
         if ( err ) throw err;
-        console.log( "1 document updated" );
+        //console.log( "1 document updated" );
         db.close();
       } );
     } );
 }
 
+//////////////
+//Special Functions
+/////////////
+
+
+//////////////
+//Template Functions
+//////////////
+
+function getNewUserTemplate() {
+  var userTemplate = {
+    twitchID: "NONE",
+    messages: 0,
+    lastJoin: null,
+    lastPart: null,
+    timeInStream: 0,
+    currency: 0,
+    isSub: false,
+    isVIP: false,
+    isMod: false,
+    isHappyPerson: false
+  };
+
+  return JSON.parse( JSON.stringify( userTemplate ) );
+}
+
+function getNewStreamTemplate() {
+  var streamTemplate = {
+    startTime: null,
+    endTime: null,
+    viewers: [],
+    duration: 0,
+    current: false
+  }
+  return JSON.parse( JSON.stringify( streamTemplate ) );
+}
+
+function getNewCurrencyProfile() {
+  var currencyTemplate = {
+    twitchID: "NONE",
+    total: 0,
+    breakdown: {
+      net: {
+        passive: 0,
+        gamble: 0,
+        race: 0,
+        stock: 0
+      },
+      gain: {
+        passive: 0,
+        gamble: 0,
+        race: 0,
+        stock: 0
+      },
+      lose: {
+        passive: 0,
+        gamble: 0,
+        race: 0,
+        stock: 0
+      }
+    },
+    record: {
+      gamble: {
+        state: "NONE",
+        streak: 0,
+        lastUpdaed: null
+      },
+      race: {
+        state: "NONE",
+        streak: 0,
+        lastUpdaed: null
+      }
+    }
+  }
+
+  return JSON.parse( JSON.stringify( currencyTemplate ) );
+}
+
 module.exports = {
   get: get,
   insert: insert,
-  update: update
+  update: update,
+  getNewUserTemplate: getNewUserTemplate,
+  getNewStreamTemplate: getNewStreamTemplate,
+  getNewCurrencyProfile: getNewCurrencyProfile
 }

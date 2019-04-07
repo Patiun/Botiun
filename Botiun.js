@@ -58,7 +58,7 @@ function onConnectedHandler( addr, port ) {
 
 function checkForViewerChanges() {
   axios.get( constants.chatterEndpoint ).then( response => {
-    console.log( "-------------------------------------------" );
+    //console.log( "-------------------------------------------" );
     let tmpUsers = response.data.chatters;
     gatherDifferences( lastUsers, tmpUsers ).then( ( differences ) => {
       let keys = Object.keys( differences.stay );
@@ -87,7 +87,7 @@ function stayUser( username ) {
     return;
   }
 
-  log( `${username} is still in the channel` );
+  //log( `${username} is still in the channel` );
 
   database.get( constants.collectionUsers, {
     twitchID: username
@@ -166,21 +166,34 @@ function joinUser( username ) {
   if ( ignoredUsers.includes( username ) ) {
     return;
   }
-
-  log( `${username} has joined the channel` );
   if ( !currentUsers.includes( username ) ) {
     currentUsers.push( username );
+    if ( live ) {
+      database.get( constants.collectionStreams, {
+        current: true
+      } ).then( ( result ) => {
+        let tmpViewers = result[ 0 ].viewers;
+        tmpViewers.push( username );
+        database.update( constants.collectionStreams, {
+          current: true
+        }, {
+          $set: {
+            viewers: tmpViewers
+          }
+        } );
+      } );
+    }
   }
 
 
+  let d = new Date();
+  let dateString = d.getUTCDate().toString();
+
+  log( `${username} has joined the channel` );
   database.get( constants.collectionUsers, {
     twitchID: username
   } ).then( ( result ) => {
-
-    let d = new Date();
-    let dateString = d.getUTCDate().toString();
     if ( result.length > 0 ) {
-      //Update the last time the user joined
       database.update( constants.collectionUsers, {
         twitchID: username
       }, {
@@ -189,8 +202,7 @@ function joinUser( username ) {
         }
       } );
     } else {
-      //Update the last time the user joined
-      let newUser = getNewUserTemplate();
+      let newUser = database.getNewUserTemplate();
       newUser.twitchID = username;
       newUser.lastJoin = d;
       database.insert( constants.collectionUsers, newUser );
@@ -219,11 +231,10 @@ function partUser( username ) {
     currentUsers = updated;
   }
 
-  log( `${username} has left the channel` );
-
-  //Update the last time we saw the user
   let d = new Date();
   let dateString = d.getUTCDate().toString();
+  log( `${username} has left the channel` );
+
   database.update( constants.collectionUsers, {
     twitchID: username
   }, {
@@ -242,7 +253,7 @@ function onMessageHandler( target, context, msg, self ) {
     return;
   }
   var username = context[ 'username' ];
-  log( `Incoming message from ${username}: "${msg}"` );
+  //log( `Incoming message from ${username}: "${msg}"` );
 
   //Add one to the message count
   database.get( constants.collectionUsers, {
@@ -287,15 +298,36 @@ function onMessageHandler( target, context, msg, self ) {
 function startStream() {
   log( "Starting Stream..." );
   live = true;
-  let nu = getNewUserTemplate();
-  nu.messages = 10;
-  console.log( nu );
+
+  let d = new Date();
+  var newStreamEntry = database.getNewStreamTemplate();
+  newStreamEntry.startTime = d;
+  newStreamEntry.viewers = currentUsers;
+  newStreamEntry.current = true;
+
+  database.insert( constants.collectionStreams, newStreamEntry );
 }
 
 function endStream() {
   log( "Ending Stream..." );
   live = false;
-  //process.exit();
+
+  database.get( constants.collectionStreams, {
+    current: true
+  } ).then( ( result ) => {
+    let d = new Date();
+    let duration = Math.floor( ( d.getTime() - result[ 0 ].startTime ) / 1000 );
+
+    database.update( constants.collectionStreams, {
+      current: true
+    }, {
+      $set: {
+        endTime: d,
+        current: false,
+        duration: duration
+      }
+    } )
+  } );
 }
 
 function initializeAllModules() {
@@ -305,23 +337,6 @@ function initializeAllModules() {
     log( `${modules[i].name} initialized` );
   }
   log( 'All modules intitialized' );
-}
-
-function getNewUserTemplate() {
-  var userTemplate = {
-    twitchID: "NONE",
-    messages: 0,
-    lastJoin: null,
-    lastPart: null,
-    timeInStream: 0,
-    currency: 0,
-    isSub: false,
-    isVIP: false,
-    isMod: false,
-    isHappyPerson: false
-  };
-
-  return JSON.parse( JSON.stringify( userTemplate ) );
 }
 
 function handleCommands( target, context, self, msgTokens ) {
@@ -338,7 +353,8 @@ function handleCommands( target, context, self, msgTokens ) {
 
 function log( msg ) {
   if ( VERBOSE ) {
-    console.log( "[BOTIUN - LOG]: " + msg );
+    let d = new Date();
+    console.log( `[BOTIUN - LOG - ${d.toTimeString().split(' ')[0]}]: ` + msg );
   }
 }
 
