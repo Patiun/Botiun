@@ -6,12 +6,14 @@ const process = require( 'process' );
 const axios = require( 'axios' );
 const constants = require( './Constants.js' );
 const database = require( './Database.js' );
+const gambling = require( './Gambling.js' );
+const currency = require( './Currency.js' );
 
 const VERBOSE = true;
 const UPDATE_INTERVAL = 30; //Seconds
 const S_TO_MS = 1000;
 const CURRENCY_PER_INTERVAL = 1;
-const modules = [];
+const modules = [ gambling, currency ];
 const channel = "Patiun";
 const superUsers = [ 'patiun' ];
 var lastUsers = {
@@ -86,34 +88,32 @@ function stayUser( username ) {
   if ( ignoredUsers.includes( username ) ) {
     return;
   }
-
-  //log( `${username} is still in the channel` );
-
+  //DATABASE CALL: UPDATE USER STAY
   database.get( constants.collectionUsers, {
     twitchID: username
   } ).then( ( result ) => {
 
     if ( result.length > 0 ) {
-      let tmpUser = result[ 0 ];
-      if ( tmpUser.currency === undefined ) {
-        tmpUser.currency = 0;
+      if ( live ) {
+        addPassiveCurrencyTo( username );
       }
-      if ( tmpUser.timeInStream === undefined ) {
-        tmpUser.timeInStream = 0;
-      }
-      let updatedUser = {
-        $set: {
-          currency: tmpUser.currency + CURRENCY_PER_INTERVAL,
-          timeInStream: tmpUser.timeInStream + UPDATE_INTERVAL
-        }
-      }
-      database.update( constants.collectionUsers, {
-        twitchID: username
-      }, updatedUser );
     }
   } ).catch( () => {
-    console.log( "[ERROR]: (Botiun.js onJoinHandler GET) Something went wrong! " );
+    console.log( "[ERROR]: (Botiun.js onStayHandler GET) Something went wrong! " );
   } );
+}
+
+function addPassiveCurrencyTo( username ) {
+  database.update( constants.collectionUsers, {
+    twitchID: username
+  }, {
+    $inc: {
+      currency: CURRENCY_PER_INTERVAL,
+      timeInStream: UPDATE_INTERVAL
+    }
+  } );
+
+  currency.addCurrencyToUserFrom( username, CURRENCY_PER_INTERVAL, 'passive' );
 }
 
 function gatherDifferences( oldUsers, newUsers ) {
@@ -169,18 +169,23 @@ function joinUser( username ) {
   if ( !currentUsers.includes( username ) ) {
     currentUsers.push( username );
     if ( live ) {
+
+      //DATABASE CALL: UPDATE VIEWER IN STREAM
       database.get( constants.collectionStreams, {
         current: true
       } ).then( ( result ) => {
-        let tmpViewers = result[ 0 ].viewers;
-        tmpViewers.push( username );
-        database.update( constants.collectionStreams, {
-          current: true
-        }, {
-          $set: {
-            viewers: tmpViewers
-          }
-        } );
+        if ( result.length > 0 ) {
+          let tmpViewers = result[ 0 ].viewers;
+          tmpViewers.push( username );
+
+          database.update( constants.collectionStreams, {
+            current: true
+          }, {
+            $set: {
+              viewers: tmpViewers
+            }
+          } );
+        }
       } );
     }
   }
@@ -190,6 +195,8 @@ function joinUser( username ) {
   let dateString = d.getUTCDate().toString();
 
   log( `${username} has joined the channel` );
+
+  //DATABASE CALL: UPDATE USER ON JOIN
   database.get( constants.collectionUsers, {
     twitchID: username
   } ).then( ( result ) => {
@@ -205,7 +212,14 @@ function joinUser( username ) {
       let newUser = database.getNewUserTemplate();
       newUser.twitchID = username;
       newUser.lastJoin = d;
+
+      //DATABASE CALL: CREATE USER
       database.insert( constants.collectionUsers, newUser );
+
+      let newCurrency = database.getNewCurrencyProfile();
+      newCurrency.twitchID = username;
+
+      database.insert( constants.collectionCurrency, newCurrency );
     }
   } ).catch( () => {
     console.log( "[ERROR]: (Botiun.js onJoinHandler GET) Something went wrong! " );
@@ -235,6 +249,7 @@ function partUser( username ) {
   let dateString = d.getUTCDate().toString();
   log( `${username} has left the channel` );
 
+  //DATABASE CALL: UPDATE USER ON PART
   database.update( constants.collectionUsers, {
     twitchID: username
   }, {
@@ -255,7 +270,7 @@ function onMessageHandler( target, context, msg, self ) {
   var username = context[ 'username' ];
   //log( `Incoming message from ${username}: "${msg}"` );
 
-  //Add one to the message count
+  //DATABASE CALL: UPDATE USER MESSAGES
   database.get( constants.collectionUsers, {
     twitchID: username
   } ).then( ( result ) => {
@@ -275,6 +290,23 @@ function onMessageHandler( target, context, msg, self ) {
   } ).catch( () => {
     console.log( "[ERROR]: (Botiun.js onMessageHandler GET) Something went wrong! " );
   } );
+
+  if ( live ) {
+    //DATABASE CALL: UPDATE MESSAGES FOR STREAM
+    database.get( constants.collectionStreams, {
+      current: true
+    } ).then( ( result ) => {
+      if ( result.length > 0 ) {
+        database.update( constants.collectionStreams, {
+          current: true
+        }, {
+          $set: {
+            messages: result[ 0 ].messages + 1
+          }
+        } )
+      }
+    } );
+  }
 
   var msgStripped = msg.trim();
   var msgTokens = msgStripped.split( ' ' );
@@ -305,6 +337,7 @@ function startStream() {
   newStreamEntry.viewers = currentUsers;
   newStreamEntry.current = true;
 
+  //DATABASE CALL: CREATE STREAM
   database.insert( constants.collectionStreams, newStreamEntry );
 }
 
@@ -312,21 +345,24 @@ function endStream() {
   log( "Ending Stream..." );
   live = false;
 
+  //DATABASE CALL: UPDATE STREAM FOR END
   database.get( constants.collectionStreams, {
     current: true
   } ).then( ( result ) => {
-    let d = new Date();
-    let duration = Math.floor( ( d.getTime() - result[ 0 ].startTime ) / 1000 );
+    if ( result.length > 0 ) {
+      let d = new Date();
+      let duration = Math.floor( ( d.getTime() - result[ 0 ].startTime ) / 1000 );
 
-    database.update( constants.collectionStreams, {
-      current: true
-    }, {
-      $set: {
-        endTime: d,
-        current: false,
-        duration: duration
-      }
-    } )
+      database.update( constants.collectionStreams, {
+        current: true
+      }, {
+        $set: {
+          endTime: d,
+          current: false,
+          duration: duration
+        }
+      } )
+    }
   } );
 }
 
@@ -344,11 +380,16 @@ function handleCommands( target, context, self, msgTokens ) {
   for ( i in modules ) {
     if ( modules[ i ].commands.includes( msgTokens[ 0 ].toLowerCase() ) ) {
       //log( `Command "${msgTokens[0]}" registered from ${username}` );
-      modules[ i ].handleCommand( username, superUsers.includes( context[ 'username' ].toLowerCase() ), context[ 'mod' ] === "true", msgTokens );
+      let userDetails = {
+        username: username,
+        isSuperUser: superUsers.includes( context[ 'username' ].toLowerCase() ),
+        isMod: context[ 'mod' ] === "true"
+      };
+      modules[ i ].handleCommand( userDetails, msgTokens );
       return;
     }
   }
-  log( `Command "${msgTokens[0]}" from ${username} is not a valid command` );
+  //log( `Command "${msgTokens[0]}" from ${username} is not a valid command` );
 }
 
 function log( msg ) {

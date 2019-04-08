@@ -56,7 +56,6 @@ function update( collection, query, newData ) {
 //Special Functions
 /////////////
 
-
 //////////////
 //Template Functions
 //////////////
@@ -84,6 +83,7 @@ function getNewStreamTemplate() {
     endTime: null,
     viewers: [],
     duration: 0,
+    messages: 0,
     current: false
   }
   return JSON.parse( JSON.stringify( streamTemplate ) );
