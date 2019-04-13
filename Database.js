@@ -22,6 +22,20 @@ function get( collection, query, projection ) {
   } );
 }
 
+function getSorted( collection, query, sorting, projection ) {
+  return new Promise( function ( resolve, reject ) {
+    MongoClient.connect( url, {
+      useNewUrlParser: true
+    }, function ( err, db ) {
+      var dbo = db.db( constants.databaseName );
+      dbo.collection( collection ).find( query, projection ).sort( sorting ).toArray( function ( err, result ) {
+        resolve( result );
+        db.close();
+      } );
+    } );
+  } );
+}
+
 function insert( collection, newData ) {
   MongoClient.connect( url, {
       useNewUrlParser: true
@@ -98,19 +112,28 @@ function getNewCurrencyProfile() {
         passive: 0,
         gamble: 0,
         race: 0,
-        stock: 0
+        stock: 0,
+        given: 0,
+        rewarded: 0,
+        spent: 0
       },
       gain: {
         passive: 0,
         gamble: 0,
         race: 0,
-        stock: 0
+        stock: 0,
+        given: 0,
+        rewarded: 0,
+        spent: 0
       },
       lose: {
         passive: 0,
         gamble: 0,
         race: 0,
-        stock: 0
+        stock: 0,
+        given: 0,
+        rewarded: 0,
+        spent: 0
       }
     },
     record: {
@@ -132,6 +155,7 @@ function getNewCurrencyProfile() {
 
 module.exports = {
   get: get,
+  getSorted: getSorted,
   insert: insert,
   update: update,
   getNewUserTemplate: getNewUserTemplate,

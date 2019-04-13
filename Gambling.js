@@ -27,52 +27,22 @@ function handleCommand( userDetails, msgTokens ) {
 }
 
 function gamble( userDetails, amount ) {
-  getPointsThen( userDetails.username, amount, ( requiredPoints ) => {
-    currency.addCurrencyToUserFrom( userDetails.username, -amount, 'gambling' );
+  currency.getCurrencyThen( userDetails.username, amount, ( requiredPoints ) => {
     console.log( requiredPoints );
     let spinNumber = Math.random() * 100;
     if ( spinNumber < constants.gambleChance ) {
       let reward = 2 * requiredPoints
-      console.log( `Congrats! ${userDetails.username} has won ${reward} in gambling!` );
-      currency.addCurrencyToUserFrom( userDetails.username, reward, 'gambling' );
+      console.log( `Congrats! ${userDetails.username} has won ${reward} ${constants.currencyName} in gambling!` );
+      currency.addCurrencyToUserFrom( userDetails.username, reward, 'gamble' );
     } else {
-      console.log( `Oof! ${userDetails.username} has lost ${requiredPoints} in gambling!` );
+      console.log( `Oof! ${userDetails.username} has lost ${requiredPoints} ${constants.currencyName} in gambling!` );
+      currency.addCurrencyToUserFrom( userDetails.username, -amount, 'gamble' );
     }
   } );
-}
-
-function getPointsThen( username, amount, callback ) {
-  if ( isNaN( parseInt( amount ) ) ) {
-    console.log( `${amount} is not a number` );
-  }
-  database.get( constants.collectionCurrency, {
-    twitchID: username
-  } ).then( ( result ) => {
-    if ( result.length > 0 ) {
-      let userPoints = result[ 0 ].total;
-      let requiredAmount = parseInt( amount );
-      if ( amount.substr( amount.length - 1 ) === '%' ) {
-        requiredAmount = Math.ceil( ( parseFloat( amount ) / 100 ) * userPoints );
-      } else
-      if ( amount.substr( amount.length - 1 ).toLowerCase() === 'k' ) {
-        requiredAmount = parseInt( amount ) * 1000;
-      }
-      if ( requiredAmount <= userPoints ) {
-        callback( requiredAmount );
-      } else {
-        console.log( `${username} only has ${userPoints} but needs ${requiredAmount}` );
-      }
-    } else {
-      console.log( "No user found" );
-    }
-  } );
-}
-
-function gamblePercentage( userDetails, percentage ) {
-
 }
 
 module.exports = {
+  name: "Gambling Module",
   commands: commands,
   init: init,
   handleCommand: handleCommand
