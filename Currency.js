@@ -75,7 +75,7 @@ function tellUserCurrencyFor( username, target ) {
 }
 
 function getcurrencyThen( username, amount, callback ) {
-  if ( isNaN( parseInt( amount ) ) ) {
+  if ( amount.toLowerCase !== 'all' && isNaN( parseInt( amount ) ) ) {
     console.log( `${amount} is not a number` );
   }
   database.get( constants.collectionCurrency, {
@@ -84,6 +84,9 @@ function getcurrencyThen( username, amount, callback ) {
     if ( result.length > 0 ) {
       let userPoints = result[ 0 ].total;
       let requiredAmount = parseInt( amount );
+      if ( amount.toLowerCase() === 'all' ) {
+        requiredAmount = userPoints;
+      } else
       if ( amount.substr( amount.length - 1 ) === '%' ) {
         requiredAmount = Math.ceil( ( parseFloat( amount ) / 100 ) * userPoints );
       } else

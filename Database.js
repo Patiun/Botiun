@@ -81,7 +81,6 @@ function getNewUserTemplate() {
     lastJoin: null,
     lastPart: null,
     timeInStream: 0,
-    currency: 0,
     isSub: false,
     isVIP: false,
     isMod: false,

@@ -7,6 +7,7 @@ var commands = [ 'gamble', 'g', 'roulette' ];
 
 function init() {
   console.log( "Gambling initiated!" );
+  botiun.sendMessage( "Test Message" );
 }
 
 function handleCommand( userDetails, msgTokens ) {

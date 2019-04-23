@@ -28,6 +28,7 @@ var lastUsers = {
 var currentUsers = [];
 var ignoredUsers = [];
 var live = false;
+var allowedToPost = false;
 const opts = {
   options: constants.options,
   identity: constants.identity,
@@ -104,14 +105,14 @@ function stayUser( username ) {
 }
 
 function addPassiveCurrencyTo( username ) {
-  database.update( constants.collectionUsers, {
+  /*database.update( constants.collectionUsers, {
     twitchID: username
   }, {
     $inc: {
       currency: CURRENCY_PER_INTERVAL,
       timeInStream: UPDATE_INTERVAL
     }
-  } );
+  } );*/
 
   currency.addCurrencyToUserFrom( username, CURRENCY_PER_INTERVAL, 'passive' );
 }
@@ -176,7 +177,9 @@ function joinUser( username ) {
       } ).then( ( result ) => {
         if ( result.length > 0 ) {
           let tmpViewers = result[ 0 ].viewers;
-          tmpViewers.push( username );
+          if ( !tmpViewers.includes( username ) ) {
+            tmpViewers.push( username );
+          }
 
           database.update( constants.collectionStreams, {
             current: true
@@ -392,23 +395,35 @@ function handleCommands( target, context, self, msgTokens ) {
   //log( `Command "${msgTokens[0]}" from ${username} is not a valid command` );
 }
 
-function log( msg ) {
+module.exports.log = log = function ( msg ) {
   if ( VERBOSE ) {
     let d = new Date();
     console.log( `[BOTIUN - LOG - ${d.toTimeString().split(' ')[0]}]: ` + msg );
   }
 }
 
-function sendMessage( msg ) {
-  client.say( channel, msg );
+module.exports.sendMessage = sendMessage = function ( msg ) {
+  if ( allowedToPost ) {
+    client.say( channel, msg );
+  } else {
+    log( `Logged Message: ${msg}` );
+  }
 }
 
-function sendMessageToUser( user, msg ) {
-  client.say( channel, `@${user} ${msg}` );
+module.exports.sendMessageToUser = sendMessageToUser = function ( user, msg ) {
+  if ( allowedToPost ) {
+    client.say( channel, `@${user} ${msg}` );
+  } else {
+    log( `Logged Message: ${msg}` );
+  }
 }
 
-function sendAction( msg ) {
-  client.action( msg );
+module.exports.sendAction = sendAction = function ( msg ) {
+  if ( allowedToPost ) {
+    client.action( msg );
+  } else {
+    log( `Logged Message: ${msg}` );
+  }
 }
 
 //Console Input Handler
@@ -432,6 +447,11 @@ stdin.addListener( "data", function ( d ) {
 
   if ( [ 'say' ].includes( msgTokens[ 0 ].toLowerCase() ) ) {
     sendMessage( msg.substr( 4 ) );
+  }
+
+  if ( [ 'post' ].includes( msgTokens[ 0 ].toLowerCase() ) ) {
+    allowedToPost = !allowedToPost;
+    log( `Posting set to ${allowedToPost}` );
   }
 
   //Handle commandline input like it was a chat message
