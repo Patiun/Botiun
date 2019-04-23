@@ -1,10 +1,17 @@
 const database = require( './Database.js' );
 const constants = require( './Constants.js' );
+const botiun = require( './Botiun.js' );
 
-commands = [ 'points', 'plat', 'platinum', 'top', 'give' ];
+var name = "Currency Module";
+var commands = [ 'points', 'plat', 'platinum', 'top', 'give', 'addpoints', 'reward' ];
 
 function init() {
-  console.log( "Currency initiated!" );
+  return new Promise( function ( resolve, reject ) {
+    data = {
+      name: name
+    }
+    resolve( data );
+  } );
 }
 
 function handleCommand( userDetails, msgTokens ) {
@@ -26,19 +33,30 @@ function handleCommand( userDetails, msgTokens ) {
     }
     listTop( userDetails.username, msgTokens[ 1 ] );
     break;
+  case 'addpoints':
+  case 'reward':
+    if ( !userDetails.isMod ) {
+      return;
+    }
+    if ( msgTokens.length < 3 ) {
+      botiun.sendMessageToUser( userDetails.username, `Proper usage of addPoints is "!addPoints [USERNAME] [AMOUNT]"` );
+      return;
+    }
+    addCurrencyToUserFrom( msgTokens[ 1 ], msgTokens[ 2 ], 'rewarded', true );
   case 'give':
     if ( msgTokens.length < 3 ) {
+      botiun.sendMessageToUser( userDetails.username, `Proper usage of Give is "!give [USERNAME] [AMOUNT]"` );
       return;
     }
     giveCurrencyTo( userDetails.username, msgTokens[ 1 ], msgTokens[ 2 ] );
     break;
   default:
-    console.log( `${command} was not handled properly.` );
+    botiun.log( `${command} was not handled properly in Currency.js` );
     break;
   }
 }
 
-function addCurrencyToUserFrom( username, amount, source ) {
+function addCurrencyToUserFrom( username, amount, source, messageFlag ) {
   let changeCategory = 'breakdown.gain.' + source;
   if ( amount < 0 ) {
     changeCategory = 'breakdown.lose.' + source;
@@ -56,6 +74,10 @@ function addCurrencyToUserFrom( username, amount, source ) {
   database.update( constants.collectionCurrency, {
     twitchID: username
   }, updateData );
+
+  if ( messageFlag ) {
+    botiun.sendMessage( `${username} has been given ${amount} ${constants.currencyName}!` );
+  }
 }
 
 function tellUserCurrencyFor( username, target ) {
@@ -66,9 +88,9 @@ function tellUserCurrencyFor( username, target ) {
     twitchID: target
   } ).then( ( result ) => {
     if ( result.length > 0 ) {
-      console.log( username, `${target} has ${result[0].total} ${constants.currencyName}` );
+      botiun.sendMessageToUser( username, `${target} has ${result[0].total} ${constants.currencyName}` );
     } else {
-      console.log( `${target} is not a valid user` );
+      botiun.sendMessageToUser( username, `Hmmm it seems like ${target} is not a valid user.` );
       return;
     }
   } )
@@ -76,7 +98,7 @@ function tellUserCurrencyFor( username, target ) {
 
 function getcurrencyThen( username, amount, callback ) {
   if ( amount.toLowerCase !== 'all' && isNaN( parseInt( amount ) ) ) {
-    console.log( `${amount} is not a number` );
+    botiun.sendMessageToUser( username, `How about you enter a value that is a real positive number?` );
   }
   database.get( constants.collectionCurrency, {
     twitchID: username
@@ -96,10 +118,10 @@ function getcurrencyThen( username, amount, callback ) {
       if ( requiredAmount <= userPoints ) {
         callback( requiredAmount );
       } else {
-        console.log( `${username} only has ${userPoints} but needs ${requiredAmount}` );
+        botiun.sendMessageToUser( username, `Oh no! You only have ${userPoints} but needs ${requiredAmount}.` );
       }
     } else {
-      console.log( "No user found" );
+      botiun.log( `ERROR: No user found when checking currecy for ${username}` );
     }
   } );
 }
@@ -112,10 +134,10 @@ function giveCurrencyTo( username, target, amount ) {
       getcurrencyThen( username, amount, ( requiredAmount ) => {
         addCurrencyToUserFrom( username, -requiredAmount, 'given' );
         addCurrencyToUserFrom( target.toLowerCase(), requiredAmount, 'given' );
-        console.log( username, `gave ${target} ${requiredAmount} ${constants.currencyName}!` );
+        botiun.sendMessage( `${username} gave ${target} ${requiredAmount} ${constants.currencyName}!` );
       } );
     } else {
-      console.log( `${target} is not a valid user` );
+      botiun.sendMessageToUser( username, `Hmmm it seems like ${target} is not a valid user.` );
     }
   } );
 }
@@ -138,16 +160,15 @@ function listCurrency() {
   } ).then( ( result ) => {
     let countMax = constants.topNumber;
     if ( result.length < countMax ) countMax = result.length;
-    let msg = '';
+    let msg = `The top ${countMax} in ${constants.currencyName}: `;
     for ( let i = 0; i < countMax; i++ ) {
-      msg += `${(i+1)}: ${result[i].twitchID} (${result[i].total}), `;
+      msg += `${(i+1)}. ${result[i].twitchID} (${result[i].total}), `;
     }
-    console.log( msg );
+    botiun.sendMessage( msg );
   } )
 }
 
 module.exports = {
-  name: "Currency Module",
   getCurrencyThen: getcurrencyThen,
   commands: commands,
   init: init,

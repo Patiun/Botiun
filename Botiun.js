@@ -96,6 +96,13 @@ function stayUser( username ) {
 
     if ( result.length > 0 ) {
       if ( live ) {
+        database.update( constants.collectionUsers, {
+          twitchID: username
+        }, {
+          $inc: {
+            timeInStream: UPDATE_INTERVAL
+          }
+        } );
         addPassiveCurrencyTo( username );
       }
     }
@@ -372,8 +379,9 @@ function endStream() {
 function initializeAllModules() {
   log( 'Initializing modules' );
   for ( i in modules ) {
-    modules[ i ].init();
-    log( `${modules[i].name} initialized` );
+    modules[ i ].init().then( ( data ) => {
+      log( `${data.name} initialized` );
+    } );
   }
   log( 'All modules intitialized' );
 }
@@ -412,7 +420,7 @@ module.exports.sendMessage = sendMessage = function ( msg ) {
 
 module.exports.sendMessageToUser = sendMessageToUser = function ( user, msg ) {
   if ( allowedToPost ) {
-    client.say( channel, `@${user} ${msg}` );
+    client.say( channel, `@${user}, ${msg}` );
   } else {
     log( `Logged Message: ${msg}` );
   }

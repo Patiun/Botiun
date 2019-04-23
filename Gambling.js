@@ -3,11 +3,16 @@ const botiun = require( './Botiun.js' );
 const database = require( './Database.js' );
 const currency = require( './Currency.js' );
 
+var name = "Gambling Module";
 var commands = [ 'gamble', 'g', 'roulette' ];
 
 function init() {
-  console.log( "Gambling initiated!" );
-  botiun.sendMessage( "Test Message" );
+  return new Promise( function ( resolve, reject ) {
+    data = {
+      name: name
+    }
+    resolve( data );
+  } );
 }
 
 function handleCommand( userDetails, msgTokens ) {
@@ -17,33 +22,29 @@ function handleCommand( userDetails, msgTokens ) {
   case 'g':
   case 'roulette':
     if ( msgTokens.length < 2 ) {
-      console.log( "Invalid Command" );
+      botiun.sendMessageToUser( userDetails.username, `Proper use of the Gambling function is "!gamble [AMOUNT]"` );
       return;
     }
     gamble( userDetails, msgTokens[ 1 ] );
-    break;
-  case 'points':
     break;
   }
 }
 
 function gamble( userDetails, amount ) {
   currency.getCurrencyThen( userDetails.username, amount, ( requiredPoints ) => {
-    console.log( requiredPoints );
     let spinNumber = Math.random() * 100;
     if ( spinNumber < constants.gambleChance ) {
       let reward = 2 * requiredPoints
-      console.log( `Congrats! ${userDetails.username} has won ${reward} ${constants.currencyName} in gambling!` );
+      botiun.sendMessage( `Congrats! ${userDetails.username} has won ${reward} ${constants.currencyName} gambling!` );
       currency.addCurrencyToUserFrom( userDetails.username, reward, 'gamble' );
     } else {
-      console.log( `Oof! ${userDetails.username} has lost ${requiredPoints} ${constants.currencyName} in gambling!` );
+      botiun.sendMessage( `Oof! ${userDetails.username} has lost ${requiredPoints} ${constants.currencyName} gambling!` );
       currency.addCurrencyToUserFrom( userDetails.username, -amount, 'gamble' );
     }
   } );
 }
 
 module.exports = {
-  name: "Gambling Module",
   commands: commands,
   init: init,
   handleCommand: handleCommand
