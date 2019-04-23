@@ -464,10 +464,3 @@ stdin.addListener( "data", function ( d ) {
     handleCommands( channel, context, null, msgTokens );
   }
 } );
-
-module.exports = {
-  log: log,
-  sendMessage: sendMessage,
-  sendMessageToUser: sendMessageToUser,
-  sendAction: sendAction
-}
