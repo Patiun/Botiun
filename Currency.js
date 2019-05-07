@@ -118,7 +118,7 @@ function getcurrencyThen( username, amount, callback ) {
       if ( requiredAmount <= userPoints ) {
         callback( requiredAmount );
       } else {
-        botiun.sendMessageToUser( username, `Oh no! You only have ${userPoints} but needs ${requiredAmount}.` );
+        botiun.sendMessageToUser( username, `Oh no! You only have ${userPoints} but need ${requiredAmount} to do that.` );
       }
     } else {
       botiun.log( `ERROR: No user found when checking currecy for ${username}` );

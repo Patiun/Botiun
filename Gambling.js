@@ -35,7 +35,7 @@ function gamble( userDetails, amount ) {
     let spinNumber = Math.random() * 100;
     if ( spinNumber < constants.gambleChance ) {
       let reward = 2 * requiredPoints
-      botiun.sendMessage( `Congrats! ${userDetails.username} has won ${reward} ${constants.currencyName} gambling!` );
+      botiun.sendMessage( `Way to go! ${userDetails.username} has won ${requiredPoints} ${constants.currencyName} gambling!` );
       currency.addCurrencyToUserFrom( userDetails.username, reward, 'gamble' );
     } else {
       botiun.sendMessage( `Oof! ${userDetails.username} has lost ${requiredPoints} ${constants.currencyName} gambling!` );

@@ -58,7 +58,6 @@ function onConnectedHandler( addr, port ) {
   setInterval( checkForViewerChanges, UPDATE_INTERVAL * S_TO_MS );
 }
 
-
 function checkForViewerChanges() {
   axios.get( constants.chatterEndpoint ).then( response => {
     //console.log( "-------------------------------------------" );
@@ -120,7 +119,6 @@ function addPassiveCurrencyTo( username ) {
       timeInStream: UPDATE_INTERVAL
     }
   } );*/
-
   currency.addCurrencyToUserFrom( username, CURRENCY_PER_INTERVAL, 'passive' );
 }
 
