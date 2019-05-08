@@ -39,7 +39,7 @@ function gamble( userDetails, amount ) {
       currency.addCurrencyToUserFrom( userDetails.username, reward, 'gamble' );
     } else {
       botiun.sendMessage( `Oof! ${userDetails.username} has lost ${requiredPoints} ${constants.currencyName} gambling!` );
-      currency.addCurrencyToUserFrom( userDetails.username, -amount, 'gamble' );
+      currency.addCurrencyToUserFrom( userDetails.username, -requiredPoints, 'gamble' );
     }
   } );
 }
