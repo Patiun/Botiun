@@ -25,6 +25,7 @@ var lastUsers = {
   global_mods: [],
   viewers: []
 };
+var logFilename = "Botiun_";
 var currentUsers = [];
 var ignoredUsers = [];
 var live = false;
@@ -36,6 +37,12 @@ const opts = {
 }
 const client = new tmi.client( opts );
 var stdin = process.openStdin();
+
+
+
+let today = new Date();
+let dateStamp = today.getFullYear() + '-' + ( today.getMonth() + 1 ) + '-' + today.getDate();
+logFilename = constants.logDir + logFilename + "_" + dateStamp + ".log";
 
 client.on( 'connected', onConnectedHandler );
 client.on( 'message', onMessageHandler );
@@ -230,7 +237,7 @@ function joinUser( username ) {
       database.insert( constants.collectionCurrency, newCurrency );
     }
   } ).catch( () => {
-    console.log( "[ERROR]: (Botiun.js onJoinHandler GET) Something went wrong! " );
+    log( "[ERROR]: (Botiun.js onJoinHandler GET) Something went wrong! " );
   } );
 }
 
@@ -296,7 +303,7 @@ function onMessageHandler( target, context, msg, self ) {
       } );
     }
   } ).catch( () => {
-    console.log( "[ERROR]: (Botiun.js onMessageHandler GET) Something went wrong! " );
+    log( "[ERROR]: (Botiun.js onMessageHandler GET) Something went wrong! " );
   } );
 
   if ( live ) {
@@ -402,9 +409,11 @@ function handleCommands( target, context, self, msgTokens ) {
 }
 
 module.exports.log = log = function ( msg ) {
+  let d = new Date();
+  let timeStamp = d.toTimeString().split( ' ' )[ 0 ];
+  fs.appendFileSync( logFilename, timeStamp + ": " + msg + "\n" );
   if ( VERBOSE ) {
-    let d = new Date();
-    console.log( `[BOTIUN - LOG - ${d.toTimeString().split(' ')[0]}]: ` + msg );
+    console.log( `[BOTIUN - LOG - ${timeStamp}]: ` + msg );
   }
 }
 
