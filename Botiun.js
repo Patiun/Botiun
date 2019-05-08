@@ -41,8 +41,8 @@ var stdin = process.openStdin();
 
 
 let today = new Date();
-let dateStamp = today.getFullYear() + '-' + ( today.getMonth() + 1 ) + '-' + today.getDate();
-logFilename = constants.logDir + logFilename + "_" + dateStamp + ".log";
+let dateStamp = today.getFullYear() + '_' + ( today.getMonth() + 1 ) + '_' + today.getDate();
+logFilename = constants.logDir + logFilename + dateStamp + ".log";
 
 client.on( 'connected', onConnectedHandler );
 client.on( 'message', onMessageHandler );
