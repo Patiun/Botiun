@@ -10,7 +10,8 @@ const gambling = require( './Gambling.js' );
 const currency = require( './Currency.js' );
 
 const VERBOSE = true;
-const UPDATE_INTERVAL = 30; //Seconds
+const VIEWER_UPDATE_INTERVAL = 30; //Seconds
+const STREAM_UPDATE_INTERVAL = 120; //Seconds
 const S_TO_MS = 1000;
 const CURRENCY_PER_INTERVAL = 1;
 const modules = [ gambling, currency ];
@@ -30,6 +31,7 @@ var currentUsers = [];
 var ignoredUsers = [];
 var live = false;
 var allowedToPost = false;
+var streamObject = {};
 const opts = {
   options: constants.options,
   identity: constants.identity,
@@ -62,7 +64,25 @@ function onConnectedHandler( addr, port ) {
   log( `Connected to Twitch on ${addr}:${port}` );
   //DEBUG-------------------------!!!!!!!!!!!!!!!!!!
   checkForViewerChanges();
-  setInterval( checkForViewerChanges, UPDATE_INTERVAL * S_TO_MS );
+  checkForStreamChanges();
+  setInterval( checkForViewerChanges, VIEWER_UPDATE_INTERVAL * S_TO_MS );
+  setInterval( checkForStreamChanges, STREAM_UPDATE_INTERVAL * S_TO_MS );
+}
+
+function checkForStreamChanges() {
+  axios.get( constants.streamEndpoint ).then( response => {
+    if ( response.data.stream ) {
+      streamObj = response.data.stream;
+      console.log( streamObj );
+      if ( !live ) {
+        startStream( streamObj );
+      }
+    } else {
+      if ( live ) {
+        endStream( streamObj );
+      }
+    }
+  } );
 }
 
 function checkForViewerChanges() {
@@ -342,7 +362,7 @@ function onMessageHandler( target, context, msg, self ) {
 ///Functions///
 //////////////
 
-function startStream() {
+function startStream( streamData ) {
   log( "Starting Stream..." );
   live = true;
 
@@ -356,7 +376,7 @@ function startStream() {
   database.insert( constants.collectionStreams, newStreamEntry );
 }
 
-function endStream() {
+function endStream( streamData ) {
   log( "Ending Stream..." );
   live = false;
 
