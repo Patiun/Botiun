@@ -16,6 +16,12 @@ const S_TO_MS = 1000;
 const CURRENCY_PER_INTERVAL = 1;
 const modules = [ gambling, currency ];
 const channel = "Patiun";
+const rooms = {
+  main: "Patiun",
+  casino: 'chatrooms:45825826:932337ca-4e78-4df3-bc09-219963d54885',
+  mods: 'chatrooms:45825826:ece89468-11b0-4e9c-ab65-90a64f91de92',
+  subs: 'chatrooms:45825826:42681782-80b8-4a9a-90c8-229bf3809f1b'
+}
 const superUsers = [ 'patiun' ];
 var lastUsers = {
   broadcaster: [],
@@ -50,6 +56,8 @@ client.on( 'connected', onConnectedHandler );
 client.on( 'message', onMessageHandler );
 //client.on( 'join', onJoinHandler );
 //client.on( 'part', onPartHandler );
+//client.on('',handler);
+//TODO add sub and follow events
 
 client.connect();
 
@@ -73,12 +81,16 @@ function checkForStreamChanges() {
   axios.get( constants.streamEndpoint ).then( response => {
     if ( response.data.stream ) {
       streamObj = response.data.stream;
-      console.log( streamObj );
+      //console.log( streamObj );
       if ( !live ) {
+        log( "Detected Stream Going Live" );
         startStream( streamObj );
+      } else {
+        //AlreadyLive
       }
     } else {
       if ( live ) {
+        log( "Detected Stream Ending" );
         endStream( streamObj );
       }
     }
@@ -126,14 +138,15 @@ function stayUser( username ) {
           twitchID: username
         }, {
           $inc: {
-            timeInStream: UPDATE_INTERVAL
+            timeInStream: VIEWER_UPDATE_INTERVAL
           }
         } );
         addPassiveCurrencyTo( username );
       }
     }
-  } ).catch( () => {
+  } ).catch( ( error ) => {
     console.log( "[ERROR]: (Botiun.js onStayHandler GET) Something went wrong! " );
+    console.log( error );
   } );
 }
 
@@ -363,6 +376,11 @@ function onMessageHandler( target, context, msg, self ) {
 //////////////
 
 function startStream( streamData ) {
+
+  today = new Date();
+  dateStamp = today.getFullYear() + '_' + ( today.getMonth() + 1 ) + '_' + today.getDate();
+  logFilename = constants.logDir + "Botiun_" + dateStamp + ".log";
+
   log( "Starting Stream..." );
   live = true;
 
@@ -437,24 +455,33 @@ module.exports.log = log = function ( msg ) {
   }
 }
 
-module.exports.sendMessage = sendMessage = function ( msg ) {
+module.exports.sendMessage = sendMessage = function ( msg, room ) {
   if ( allowedToPost ) {
-    client.say( channel, msg );
+    if ( !room ) {
+      room = rooms.main;
+    }
+    client.say( room, msg );
   } else {
     log( `Logged Message: ${msg}` );
   }
 }
 
-module.exports.sendMessageToUser = sendMessageToUser = function ( user, msg ) {
+module.exports.sendMessageToUser = sendMessageToUser = function ( user, msg, room ) {
   if ( allowedToPost ) {
+    if ( !room ) {
+      room = rooms.main;
+    }
     client.say( channel, `@${user}, ${msg}` );
   } else {
     log( `Logged Message: ${msg}` );
   }
 }
 
-module.exports.sendAction = sendAction = function ( msg ) {
+module.exports.sendAction = sendAction = function ( msg, room ) {
   if ( allowedToPost ) {
+    if ( !room ) {
+      room = rooms.main;
+    }
     client.action( msg );
   } else {
     log( `Logged Message: ${msg}` );
