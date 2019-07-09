@@ -4,8 +4,12 @@ const tmi = require( 'tmi.js' );
 const fs = require( 'fs' );
 const process = require( 'process' );
 const axios = require( 'axios' );
+const connect = require( 'connect' );
+const serveStatic = require( 'serve-static' );
+//Core Units
 const constants = require( './Constants.js' );
 const database = require( './Database.js' );
+//Modules
 const gambling = require( './Gambling.js' );
 const currency = require( './Currency.js' );
 const notice = require( './Notice.js' );
@@ -62,6 +66,9 @@ client.on( 'message', onMessageHandler );
 
 client.connect();
 
+connect().use( serveStatic( 'Public_Html' ) ).listen( 8080, function () {
+  console.log( '[WEBSERVER] Webserver listening on 8080...' );
+} );
 /////////////
 ///Events///
 ///////////
