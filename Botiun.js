@@ -8,13 +8,14 @@ const constants = require( './Constants.js' );
 const database = require( './Database.js' );
 const gambling = require( './Gambling.js' );
 const currency = require( './Currency.js' );
+const notice = require( './Notice.js' );
 
 const VERBOSE = true;
 const VIEWER_UPDATE_INTERVAL = 30; //Seconds
 const STREAM_UPDATE_INTERVAL = 120; //Seconds
 const S_TO_MS = 1000;
 const CURRENCY_PER_INTERVAL = 1;
-const modules = [ gambling, currency ];
+const modules = [ gambling, currency, notice ];
 const channel = "Patiun";
 const rooms = {
   main: "Patiun",
