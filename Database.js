@@ -156,7 +156,16 @@ function getNewHorseTemplate() {
   var horseTemplate = {
     name: "NAME",
     speed: 0,
-    age: 0
+    age: 0,
+    gender: "F",
+    record: {
+      raceWins: 0,
+      races: 0,
+      derbies: 0,
+      derbyWins: 0
+    },
+    stock: {},
+    owner: "no one"
   }
 
   return JSON.parse( JSON.stringify( horseTemplate ) );
@@ -170,5 +179,5 @@ module.exports = {
   getNewUserTemplate: getNewUserTemplate,
   getNewStreamTemplate: getNewStreamTemplate,
   getNewCurrencyProfile: getNewCurrencyProfile,
-  getNewHorseTemplate: getNewHorseTempalte
+  getNewHorseTemplate: getNewHorseTemplate
 }

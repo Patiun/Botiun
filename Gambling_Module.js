@@ -1,7 +1,7 @@
 const constants = require( './Constants.js' );
 const botiun = require( './Botiun.js' );
 const database = require( './Database.js' );
-const currency = require( './Currency.js' );
+const currency = require( './Currency_Module.js' );
 
 var name = "Gambling Module";
 var commands = [ 'gamble', 'g', 'roulette' ];

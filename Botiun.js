@@ -13,13 +13,14 @@ const database = require( './Database.js' );
 const gambling = require( './Gambling_Module.js' );
 const currency = require( './Currency_Module.js' );
 const notice = require( './Notice_Module.js' );
+const race = require( './Race_Module.js' );
 
 const VERBOSE = true;
 const VIEWER_UPDATE_INTERVAL = 30; //Seconds
 const STREAM_UPDATE_INTERVAL = 120; //Seconds
 const S_TO_MS = 1000;
 const CURRENCY_PER_INTERVAL = 1;
-const modules = [ gambling, currency, notice ];
+const modules = [ gambling, currency, notice, race ];
 const channel = "Patiun";
 const rooms = {
   main: "Patiun",
@@ -534,6 +535,15 @@ module.exports.log = log = function ( msg ) {
   fs.appendFileSync( logFilename, timeStamp + ": " + msg + "\n" );
   if ( VERBOSE ) {
     console.log( `[BOTIUN - LOG - ${timeStamp}]: ` + msg );
+  }
+}
+
+module.exports.error = error = function ( msg ) {
+  let d = new Date();
+  let timeStamp = d.toTimeString().split( ' ' )[ 0 ];
+  fs.appendFileSync( logFilename, timeStamp + ": " + msg + "\n" );
+  if ( VERBOSE ) {
+    console.log( `[BOTIUN - ERROR - ${timeStamp}]: ` + msg );
   }
 }
 

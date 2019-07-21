@@ -114,7 +114,7 @@ function tellUserCurrencyFor( username, target ) {
   } )
 }
 
-function getcurrencyThen( username, amount, callback ) {
+function getCurrencyThen( username, amount, callback ) {
   if ( amount.toLowerCase !== 'all' && isNaN( parseInt( amount ) ) ) {
     botiun.sendMessageToUser( username, `How about you enter a value that is a real positive number?` );
   }
@@ -187,7 +187,7 @@ function listCurrency() {
 }
 
 module.exports = {
-  getCurrencyThen: getcurrencyThen,
+  getCurrencyThen: getCurrencyThen,
   commands: commands,
   init: init,
   start: start,
