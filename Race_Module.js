@@ -105,7 +105,7 @@ function makeNewHorse( name, speed, gender ) {
     speed = Math.floor( 50 + Math.random() * 50 );
   }
   if ( !gender ) {
-    gender = ( Math.random() < 50 ) ? "M" : "F";
+    gender = ( Math.random() < 0.5 ) ? "M" : "F";
   }
   let newHorse = database.getNewHorseTemplate();
   newHorse.name = name;
