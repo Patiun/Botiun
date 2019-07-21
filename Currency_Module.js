@@ -14,6 +14,24 @@ function init() {
   } );
 }
 
+function start() {
+  return new Promise( function ( resolve, reject ) {
+    data = {
+      name: name
+    }
+    resolve( data );
+  } );
+}
+
+function end() {
+  return new Promise( function ( resolve, reject ) {
+    data = {
+      name: name
+    }
+    resolve( data );
+  } );
+}
+
 function handleCommand( userDetails, msgTokens ) {
   let command = msgTokens[ 0 ];
   switch ( command ) {
@@ -172,6 +190,8 @@ module.exports = {
   getCurrencyThen: getcurrencyThen,
   commands: commands,
   init: init,
+  start: start,
+  end: end,
   handleCommand: handleCommand,
   addCurrencyToUserFrom: addCurrencyToUserFrom
 }

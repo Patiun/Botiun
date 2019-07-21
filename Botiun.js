@@ -10,9 +10,9 @@ const serveStatic = require( 'serve-static' );
 const constants = require( './Constants.js' );
 const database = require( './Database.js' );
 //Modules
-const gambling = require( './Gambling.js' );
-const currency = require( './Currency.js' );
-const notice = require( './Notice.js' );
+const gambling = require( './Gambling_Module.js' );
+const currency = require( './Currency_Module.js' );
+const notice = require( './Notice_Module.js' );
 
 const VERBOSE = true;
 const VIEWER_UPDATE_INTERVAL = 30; //Seconds
@@ -59,6 +59,59 @@ logFilename = constants.logDir + logFilename + dateStamp + ".log";
 
 client.on( 'connected', onConnectedHandler );
 client.on( 'message', onMessageHandler );
+client.on( 'raided', onRaidHandler );
+
+function onRaidHandler( channel, raider, viewers ) {
+  console.log( "raid", channel, raider, viewers );
+}
+
+client.on( "hosted", onHostHandler );
+
+function onHostHandler( channel, username, viewers, autohost ) {
+  console.log( "hosts", channel, username, viewers, autohost )
+}
+client.on( 'resub', onResubHandler );
+
+function onResubHandler( channel, username, months, message, userstate, methods ) {
+  console.log( "Resub", channel, username, months, message, userstate, methods );
+}
+
+/*client.on("subgift", (channel, username, streakMonths, recipient, methods, userstate) => {
+    // Do your stuff.
+    let senderCount = ~~userstate["msg-param-sender-count"];
+});*/
+/*client.on("submysterygift", (channel, username, numbOfSubs, methods, userstate) => {
+    // Do your stuff.
+    let senderCount = ~~userstate["msg-param-sender-count"];
+});*/
+/*client.on("giftpaidupgrade", (channel, username, sender, userstate) => {
+    // Do your stuff.
+});*/
+/*client.on("anongiftpaidupgrade", (channel, username, userstate) => {
+    // Do your stuff.
+});*/
+client.on( "subscription", onSubHandler );
+
+function onSubHandler( channel, username, method, message, userstate ) {
+  console.log( "Sub", channel, username, method, message, userstate );
+}
+
+client.on( "vips", onVipHandler );
+
+function onVipHandler( channel, vips ) {
+  console.log( "vips", channel, vips );
+}
+/*client.on("whisper", (from, userstate, message, self) => {
+    // Don't listen to my own messages..
+    if (self) return;
+
+    // Do your stuff.
+});*/
+client.on( "cheer", onCheerHandler );
+
+function onCheerHandler( channel, userstate, message ) {
+  console.log( channel, userstate, message );
+}
 //client.on( 'join', onJoinHandler );
 //client.on( 'part', onPartHandler );
 //client.on('',handler);
@@ -398,6 +451,8 @@ function startStream( streamData ) {
   newStreamEntry.viewers = currentUsers;
   newStreamEntry.current = true;
 
+  alertAllModulesToStreamStart();
+
   //DATABASE CALL: CREATE STREAM
   database.insert( constants.collectionStreams, newStreamEntry );
 }
@@ -405,6 +460,8 @@ function startStream( streamData ) {
 function endStream( streamData ) {
   log( "Ending Stream..." );
   live = false;
+
+  alertAllModulesToStreamEnd();
 
   //DATABASE CALL: UPDATE STREAM FOR END
   database.get( constants.collectionStreams, {
@@ -434,7 +491,24 @@ function initializeAllModules() {
       log( `${data.name} initialized` );
     } );
   }
-  log( 'All modules intitialized' );
+}
+
+function alertAllModulesToStreamStart() {
+  log( 'Stream starting modules' );
+  for ( i in modules ) {
+    modules[ i ].start().then( ( data ) => {
+      log( `${data.name} started` );
+    } );
+  }
+}
+
+function alertAllModulesToStreamEnd() {
+  log( 'Stream endingg modules' );
+  for ( i in modules ) {
+    modules[ i ].end().then( ( data ) => {
+      log( `${data.name} ended` );
+    } );
+  }
 }
 
 function handleCommands( target, context, self, msgTokens ) {

@@ -152,6 +152,16 @@ function getNewCurrencyProfile() {
   return JSON.parse( JSON.stringify( currencyTemplate ) );
 }
 
+function getNewHorseTemplate() {
+  var horseTemplate = {
+    name: "NAME",
+    speed: 0,
+    age: 0
+  }
+
+  return JSON.parse( JSON.stringify( horseTemplate ) );
+}
+
 module.exports = {
   get: get,
   getSorted: getSorted,
@@ -159,5 +169,6 @@ module.exports = {
   update: update,
   getNewUserTemplate: getNewUserTemplate,
   getNewStreamTemplate: getNewStreamTemplate,
-  getNewCurrencyProfile: getNewCurrencyProfile
+  getNewCurrencyProfile: getNewCurrencyProfile,
+  getNewHorseTemplate: getNewHorseTempalte
 }

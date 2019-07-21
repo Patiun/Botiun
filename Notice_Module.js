@@ -26,6 +26,25 @@ function init() {
   } );
 }
 
+function start() {
+  return new Promise( function ( resolve, reject ) {
+    data = {
+      name: name
+    }
+    noticeTracker = [];
+    resolve( data );
+  } );
+}
+
+function end() {
+  return new Promise( function ( resolve, reject ) {
+    data = {
+      name: name
+    }
+    resolve( data );
+  } );
+}
+
 function handleCommand( userDetails, msgTokens ) {
   let command = msgTokens[ 0 ];
   switch ( command ) {
@@ -50,5 +69,7 @@ function notice( username ) {
 module.exports = {
   commands: commands,
   init: init,
+  start: start,
+  end: end,
   handleCommand: handleCommand
 }
