@@ -8,7 +8,7 @@ var commands = [ "load", "save", "new", "list", "make", "draw", "run", "finish" 
 var racesAllowed = false;
 var horses = [];
 var horseLookup = {};
-var raceCount = 3;
+var raceCount = 2;
 var raceTickDuration = 1000; //MS
 var races = [];
 var activeRace;
@@ -94,11 +94,13 @@ function forceEndRace() {
 
 function prepareRaces() {
   let horseCount = horses.length;
-  let horsesPerRace = horseCount / raceCount;
+  //let horsesPerRace = horseCount / raceCount;
+  let horsesPerRace = splitIntoParts( horseCount, raceCount );
   console.log( `Horse Count: ${horseCount} | Horses Per Race: ${horsesPerRace} | Race Count: ${raceCount}` );
 
   //TODO Shuffle unusedHorses
   let unusedHorses = JSON.parse( JSON.stringify( horses ) );
+  shuffle( unusedHorses );
 
   for ( let i = 0; i < raceCount; i++ ) {
     let newRace = {
@@ -107,9 +109,10 @@ function prepareRaces() {
       started: false,
       finished: false
     };
-
-    for ( let j = 0; j < horsesPerRace; j++ ) {
-      newRace.horses.push( unusedHorses.pop() );
+    for ( let j = 0; j < horsesPerRace[ i ]; j++ ) {
+      let tempHorse = unusedHorses.pop();
+      tempHorse.progress = 0;
+      newRace.horses.push( tempHorse );
     }
     races.push( newRace );
   }
@@ -154,21 +157,57 @@ function startRace() {
   activeRace.interval = setInterval( raceTick, raceTickDuration );
 }
 
+function advanceHorse( horse ) {
+  if ( horse.progress >= 0 && horse.progress < 100 ) {
+    horse.progress += ( horse.speed / ( ( Math.random() * 10 ) + 5 ) ) * ( Math.random() * 1.75 );
+  }
+  if ( !activeRace.places.includes( horse ) && horse.progress >= 100 ) {
+    console.log( `${horse.name} has finished!` );
+    activeRace.places.push( horse );
+  }
+}
+
 function raceTick() {
-  console.log( "TICK" );
+  //console.log( "TICK" );
   tickCount++;
+
+  shuffle( activeRace.horses );
+  for ( let i = 0; i < activeRace.horses.length; i++ ) {
+    advanceHorse( activeRace.horses[ i ] );
+  }
+
+  //SORT BASED ON PROGRESS
+  activeRace.horses.sort( ( a, b ) => {
+    return b.progress - a.progress;
+  } );
+
+  //OUTPUT----------
+  let outputList = [];
+  for ( let i = 0; i < activeRace.horses.length; i++ ) {
+    outputList.push( [ activeRace.horses[ i ].name, activeRace.horses[ i ].progress ] );
+  }
+
+  console.log( outputList );
+  //-----------------
+
+  if ( activeRace.places.length >= activeRace.horses.length ) {
+    endRace();
+    console.log( "Ticks: " + tickCount );
+  }
+  /*
   if ( tickCount >= maxTicks ) {
     endRace();
-  }
+  }*/
 }
 
 function endRace() {
   if ( !activeRace ) {
     console.log( "[ALERT] No active race!" );
+    return;
   }
   activeRace.finished = true;
   clearInterval( activeRace.interval );
-  console.log( "Race is over! Winner: " + activeRace.horses[ 0 ].name );
+  console.log( "Race is over! Winner: " + activeRace.places[ 0 ].name );
 }
 
 //-----------------------Utility-----------------------------------------------
@@ -207,7 +246,7 @@ function makeNewHorse( name, speed, gender ) {
     return;
   }
   if ( !speed ) {
-    speed = Math.floor( 50 + Math.random() * 50 );
+    speed = Math.floor( 50 + Math.random() * 20 );
   }
   if ( !gender ) {
     gender = ( Math.random() < 0.5 ) ? "M" : "F";
@@ -230,6 +269,23 @@ function horseExists( name ) {
 function getHorseNameReduced( name ) {
   let reducedName = name.trim().toLowerCase().replace( /\s/g, '_' );
   return reducedName;
+}
+
+function shuffle( array ) {
+  array.sort( () => Math.random() - 0.5 );
+}
+
+function splitIntoParts( whole, parts ) {
+  var partsArr = new Array( parts );
+  var remain = whole;
+  var partsLeft = parts;
+  for ( let i = 0; partsLeft > 0; i++ ) {
+    let size = ( remain + partsLeft - 1 ) / partsLeft;
+    partsArr[ i ] = size
+    remain -= size;
+    partsLeft--;
+  }
+  return partsArr;
 }
 
 //-----------------------------------------------------------------------------
