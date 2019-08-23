@@ -156,6 +156,8 @@ function checkForStreamChanges() {
         endStream( streamObj );
       }
     }
+  } ).catch( err => {
+    error( "Checking stream for change failed. Failure in axios get.", err );
   } );
 }
 
@@ -180,8 +182,8 @@ function checkForViewerChanges() {
     } );
     lastUsers = tmpUsers;
 
-  } ).catch( error => {
-    console.log( error );
+  } ).catch( err => {
+    error( "Checking stream for viewer change. Failure in axios get.", err );
   } );
 }
 

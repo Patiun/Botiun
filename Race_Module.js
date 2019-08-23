@@ -154,12 +154,14 @@ function startRace() {
 
   activeRace.started = true;
   tickCount = 0;
+
   activeRace.interval = setInterval( raceTick, raceTickDuration );
 }
 
 function advanceHorse( horse ) {
   if ( horse.progress >= 0 && horse.progress < 100 ) {
-    horse.progress += ( horse.speed / ( ( Math.random() * 10 ) + 5 ) ) * ( Math.random() * 1.75 );
+    let amount = ( horse.speed / ( ( Math.random() * 10 ) + 5 ) ) * ( Math.random() * 1.75 );
+    horse.progress += ( amount );
   }
   if ( !activeRace.places.includes( horse ) && horse.progress >= 100 ) {
     console.log( `${horse.name} has finished!` );
@@ -168,7 +170,6 @@ function advanceHorse( horse ) {
 }
 
 function raceTick() {
-  //console.log( "TICK" );
   tickCount++;
 
   shuffle( activeRace.horses );
@@ -176,28 +177,26 @@ function raceTick() {
     advanceHorse( activeRace.horses[ i ] );
   }
 
+  outputRaceState();
+
+  if ( activeRace.places.length >= activeRace.horses.length ) {
+    endRace();
+    console.log( "Ticks: " + tickCount );
+  }
+}
+
+function outputRaceState() {
   //SORT BASED ON PROGRESS
   activeRace.horses.sort( ( a, b ) => {
     return b.progress - a.progress;
   } );
 
-  //OUTPUT----------
   let outputList = [];
   for ( let i = 0; i < activeRace.horses.length; i++ ) {
     outputList.push( [ activeRace.horses[ i ].name, activeRace.horses[ i ].progress ] );
   }
 
   console.log( outputList );
-  //-----------------
-
-  if ( activeRace.places.length >= activeRace.horses.length ) {
-    endRace();
-    console.log( "Ticks: " + tickCount );
-  }
-  /*
-  if ( tickCount >= maxTicks ) {
-    endRace();
-  }*/
 }
 
 function endRace() {
@@ -207,7 +206,14 @@ function endRace() {
   }
   activeRace.finished = true;
   clearInterval( activeRace.interval );
-  console.log( "Race is over! Winner: " + activeRace.places[ 0 ].name );
+  let winner = activeRace.places[ 0 ].name;
+  console.log( "Race is over! Winner: " + winner );
+
+  //Update Horse Winner
+  let horse = horseLookup[ getHorseNameReduced( winner ) ];
+  horse.record.raceWins++;
+  saveHorseToDB( horse );
+
 }
 
 //-----------------------Utility-----------------------------------------------
@@ -233,7 +239,9 @@ function saveAllHorsesToDB() {
 function saveHorseToDB( horse ) {
   database.update( constants.collectionHorses, {
     _id: horse._id
-  }, horse );
+  }, {
+    $set: horse
+  } );
 }
 
 function makeNewHorse( name, speed, gender ) {
@@ -280,7 +288,7 @@ function splitIntoParts( whole, parts ) {
   var remain = whole;
   var partsLeft = parts;
   for ( let i = 0; partsLeft > 0; i++ ) {
-    let size = ( remain + partsLeft - 1 ) / partsLeft;
+    let size = Math.floor( ( remain + partsLeft - 1 ) / partsLeft );
     partsArr[ i ] = size
     remain -= size;
     partsLeft--;
