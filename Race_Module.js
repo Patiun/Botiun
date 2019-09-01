@@ -208,6 +208,8 @@ function endRace() {
   clearInterval( activeRace.interval );
   let winner = activeRace.places[ 0 ].name;
   console.log( "Race is over! Winner: " + winner );
+  console.log( "In second: " + activeRace.places[ 1 ].name );
+  console.log( "In third: " + activeRace.places[ 2 ].name );
 
   //Update Horse Winner
   let horse = horseLookup[ getHorseNameReduced( winner ) ];
