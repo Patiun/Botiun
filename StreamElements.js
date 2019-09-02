@@ -1,7 +1,8 @@
-const fs = require( 'fs' );
-const request = require( 'request' );
-const rp = require( 'request-promise' );
-const constants = require( './constants.js' );
+const fs = require('fs');
+const request = require('request');
+const rp = require('request-promise');
+const constants = require('./Constants.js');
+const botiun = require('./Botiun.js');
 
 // Define configuration options
 const opts = {
@@ -12,7 +13,7 @@ const opts = {
 
 const URL_BASE = "https://api.streamelements.com/kappa/v2/";
 
-function getPointsForUser( user, callback ) {
+function getPointsForUser(user, amount, callback) {
   var url = URL_BASE + "points/" + constants.streamElementsAccountId + "/" + user;
 
   const options = {
@@ -23,12 +24,27 @@ function getPointsForUser( user, callback ) {
 
   var points = -1;
 
-  rp( options ).then( function ( body ) {
-    callback( body.points );
-  } );
+  rp(options).then(function(body) {
+    let userPoints = body.points;
+    let requiredAmount = parseInt(amount);
+    if (amount.toLowerCase() === 'all') {
+      requiredAmount = userPoints;
+    } else
+    if (amount.substr(amount.length - 1) === '%') {
+      requiredAmount = Math.ceil((parseFloat(amount) / 100) * userPoints);
+    } else
+    if (amount.substr(amount.length - 1).toLowerCase() === 'k') {
+      requiredAmount = parseInt(amount) * 1000;
+    }
+    if (requiredAmount <= userPoints) {
+      callback(requiredAmount);
+    } else {
+      botiun.sendMessageToUser(user, `Oh no! You only have ${userPoints} but need ${requiredAmount} to do that.`);
+    }
+  });
 }
 
-function updatePointsForUser( user, amount ) {
+function updatePointsForUser(user, amount) {
   var url = URL_BASE + "points/" + constants.streamElementsAccountId + "/" + user + "/" + amount;
 
   const options = {
@@ -41,9 +57,9 @@ function updatePointsForUser( user, amount ) {
     }
   };
 
-  request.put( options, function ( error, response, body ) {
-    if ( error ) throw new Error( error );
-  } );
+  request.put(options, function(error, response, body) {
+    if (error) throw new Error(error);
+  });
 }
 
 module.exports = {

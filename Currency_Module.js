@@ -136,11 +136,12 @@ function tellUserCurrencyFor(username, target) {
 
 function getCurrencyThen(username, amount, callback) {
   try {
-    if (amount.toLowerCase !== 'all' && isNaN(parseInt(amount))) {
+    if ((amount.toLowerCase != 'all' && amount.substr(amount.length - 1) != '%' && amount.substr(amount.length - 1).toLowerCase() != 'k' && isNaN(parseInt(amount))) || parseInt(amount) <= 0) {
+      console.log(amount);
       botiun.sendMessageToUser(username, `How about you enter a value that is a real positive number?`);
     }
     if (usingSE) {
-      streamElements.getPointsForUser(username, callback);
+      streamElements.getPointsForUser(username, amount, callback);
     } else {
       database.get(constants.collectionCurrency, {
         twitchID: username
