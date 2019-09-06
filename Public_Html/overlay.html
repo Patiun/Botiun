@@ -11,30 +11,31 @@
      * Plays a sound using the HTML5 audio tag. Provide mp3 and ogg files for best browser support.
      * @param {string} filename The name of the file. Omit the ending!
      */
+    /*
     function playSound(filename) {
+      console.log("Trying to play sound1");
       var mp3Source = '<source src="' + filename + '.mp3" type="audio/mpeg">';
       var oggSource = '<source src="' + filename + '.ogg" type="audio/ogg">';
       var embedSource = '<embed hidden="true" autostart="true" loop="false" src="' + filename + '.mp3">';
       document.getElementById("sound").innerHTML = '<audio autoplay="autoplay">' + mp3Source + oggSource + embedSource + '</audio>';
-    }
-
+    }*/
     //Option 2
-    function playSound2() {
-      let audio = new Audio('/path/to/audio/file.mp3');
+    function playSound(audioFileName) {
+      console.log("Trying to play sound " + audioFileName);
+      let audio = new Audio(audioFileName);
       audio.play();
     }
 
     $(function() {
       var socket = io();
-      socket.on('donate', function(msg) {
-        showDiv(msg);
-        setTimeout(function() {
-          hideDiv()
-        }, 8000);
+      socket.on('play', function(audioFileName) {
+        console.log("Recieved play");
+        playSound(audioFileName);
       });
 
       function showDiv(text) {
         $('div', '#container').stop().show();
+        console.log(text);
         $("#donate-info p").text(text);
       }
 
@@ -48,11 +49,12 @@
 <body>
   <div id='container'>
     <div class='display' style='display:none;'>
-      <Img SRC="https://media.giphy.com/media/l4Jz3a8jO92crUlWM/giphy.gif"></Img>
       <div id='donate-info'>
         <div class="strokeme"></div>
       </div>
     </div>
+  </div>
+  <div id='sound'>
   </div>
 </body>
 <style>

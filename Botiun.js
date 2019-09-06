@@ -141,6 +141,7 @@ app.get('/', function(req, res) {
 app.get('/overlay', function(req, res) {
   res.sendFile('D:/projects/github/botiun/Public_Html/overlay.html');
 });
+app.use(express.static('Sounds'));
 
 io.on('connection', (socket) => {
   // when the client emits 'donate', this listens and executes
@@ -625,6 +626,10 @@ stdin.addListener("data", function(d) {
   var msg = d.toString().trim();
   var msgStripped = msg.trim();
   var msgTokens = msgStripped.split(' ');
+  if (msg === "play") {
+    console.log("SENDING PLAY");
+    io.sockets.emit('play', "/Welcome-Shrek.mp3");
+  }
 
   if (['end'].includes(msgTokens[0].toLowerCase())) {
     endStream();
