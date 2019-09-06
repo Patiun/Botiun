@@ -322,6 +322,11 @@ function placeBetOn(user, amount, horseParams) {
   });
 }
 
+//Stock buy / sell
+//Breed
+//Train
+//Age
+
 //Announcements
 //VIP and Happy entrances
 //Roulette

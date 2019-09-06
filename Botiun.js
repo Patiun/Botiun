@@ -6,6 +6,9 @@ const process = require('process');
 const axios = require('axios');
 const connect = require('connect');
 const serveStatic = require('serve-static');
+const express = require("express");
+const http = require("http");
+const socketIo = require("socket.io");
 //Core Units
 const constants = require('./Constants.js');
 const database = require('./Database.js');
@@ -20,7 +23,7 @@ const VIEWER_UPDATE_INTERVAL = 30; //Seconds
 const STREAM_UPDATE_INTERVAL = 120; //Seconds
 const S_TO_MS = 1000;
 const CURRENCY_PER_INTERVAL = 1;
-const modules = [gambling, currency, notice, race];
+const modules = [currency, notice, race]; //gambling
 const channel = "Patiun";
 const rooms = {
   main: "Patiun",
@@ -120,12 +123,38 @@ function onCheerHandler(channel, userstate, message) {
 
 client.connect();
 
-connect().use(serveStatic('Public_Html')).listen(8080, function() {
-  console.log('[WEBSERVER] Webserver listening on 8080...');
+///////////////----------------------------------------------------------------
+//Web Server//-----------------------------------------------------------------
+/////////////------------------------------------------------------------------
+
+const port = process.env.PORT || 4001;
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
+
+server.listen(port, () => {
+  log(`Web Server listening at port ${port}`);
 });
-/////////////
-///Events///
-///////////
+app.get('/', function(req, res) {
+  res.sendFile('D:/projects/github/botiun/Public_Html/index.html');
+});
+app.get('/overlay', function(req, res) {
+  res.sendFile('D:/projects/github/botiun/Public_Html/overlay.html');
+});
+
+io.on('connection', (socket) => {
+  // when the client emits 'donate', this listens and executes
+  socket.on('donate', (msg) => {
+    socket.broadcast.emit('donate', 'Receive donate');
+  });
+  socket.on('disconnect', () => {
+    log('user disconnected');
+  });
+});
+
+/////////////------------------------------------------------------------------
+///Events///--------------------------------------------------------------------
+///////////--------------------------------------------------------------------
 
 function onConnectedHandler(addr, port) {
   ignoredUsers = constants.ignoredUsers;
@@ -140,9 +169,13 @@ function onConnectedHandler(addr, port) {
 }
 
 function checkForStreamChanges() {
-  axios.get(constants.streamEndpoint).then(response => {
-    if (response.data.stream) {
-      streamObj = response.data.stream;
+  axios.get(constants.streamEndpoint, {
+    headers: {
+      'Client-ID': constants.options.clientId
+    }
+  }).then(response => {
+    if (response.data.length > 0) {
+      streamObj = response.data[0];
       //console.log( streamObj );
       if (!live) {
         log("Detected Stream Going Live");
@@ -157,7 +190,8 @@ function checkForStreamChanges() {
       }
     }
   }).catch(err => {
-    error("Checking stream for change failed. Failure in axios get.", err);
+    error("Checking stream for change failed. Failure in axios get.");
+    error(err);
   });
 }
 

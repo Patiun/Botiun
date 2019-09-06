@@ -1,69 +1,73 @@
 //Database handler that lets whatever application needed connect to the current database
-const constants = require( './Constants.js' );
+const constants = require('./Constants.js');
 
-var MongoClient = require( 'mongodb' ).MongoClient;
+var MongoClient = require('mongodb').MongoClient;
 var url = constants.databaseAddress;
 
 //////////////
 //Base Functions
 /////////////
 
-function get( collection, query, projection ) {
-  return new Promise( function ( resolve, reject ) {
-    MongoClient.connect( url, {
-      useNewUrlParser: true
-    }, function ( err, db ) {
-      var dbo = db.db( constants.databaseName );
-      dbo.collection( collection ).find( query, projection ).toArray( function ( err, result ) {
-        resolve( result );
+function get(collection, query, projection) {
+  return new Promise(function(resolve, reject) {
+    MongoClient.connect(url, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    }, function(err, db) {
+      var dbo = db.db(constants.databaseName);
+      dbo.collection(collection).find(query, projection).toArray(function(err, result) {
+        resolve(result);
         db.close();
-      } );
-    } );
-  } );
+      });
+    });
+  });
 }
 
-function getSorted( collection, query, sorting, projection ) {
-  return new Promise( function ( resolve, reject ) {
-    MongoClient.connect( url, {
-      useNewUrlParser: true
-    }, function ( err, db ) {
-      var dbo = db.db( constants.databaseName );
-      dbo.collection( collection ).find( query, projection ).sort( sorting ).toArray( function ( err, result ) {
-        resolve( result );
+function getSorted(collection, query, sorting, projection) {
+  return new Promise(function(resolve, reject) {
+    MongoClient.connect(url, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    }, function(err, db) {
+      var dbo = db.db(constants.databaseName);
+      dbo.collection(collection).find(query, projection).sort(sorting).toArray(function(err, result) {
+        resolve(result);
         db.close();
-      } );
-    } );
-  } );
+      });
+    });
+  });
 }
 
-function insert( collection, newData ) {
-  MongoClient.connect( url, {
-      useNewUrlParser: true
+function insert(collection, newData) {
+  MongoClient.connect(url, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
     },
-    function ( err, db ) {
-      if ( err ) throw err;
-      var dbo = db.db( constants.databaseName );
-      dbo.collection( collection ).insertOne( newData, function ( err, res ) {
-        if ( err ) throw err;
+    function(err, db) {
+      if (err) throw err;
+      var dbo = db.db(constants.databaseName);
+      dbo.collection(collection).insertOne(newData, function(err, res) {
+        if (err) throw err;
         //console.log( "1 document inserted" );
         db.close();
-      } );
-    } );
+      });
+    });
 }
 
-function update( collection, query, newData ) {
-  MongoClient.connect( url, {
-      useNewUrlParser: true
+function update(collection, query, newData) {
+  MongoClient.connect(url, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
     },
-    function ( err, db ) {
-      if ( err ) throw err;
-      var dbo = db.db( constants.databaseName );
-      dbo.collection( collection ).updateOne( query, newData, function ( err, res ) {
-        if ( err ) throw err;
+    function(err, db) {
+      if (err) throw err;
+      var dbo = db.db(constants.databaseName);
+      dbo.collection(collection).updateOne(query, newData, function(err, res) {
+        if (err) throw err;
         //console.log( "1 document updated" );
         db.close();
-      } );
-    } );
+      });
+    });
 }
 
 //////////////
@@ -87,7 +91,7 @@ function getNewUserTemplate() {
     isHappyPerson: false
   };
 
-  return JSON.parse( JSON.stringify( userTemplate ) );
+  return JSON.parse(JSON.stringify(userTemplate));
 }
 
 function getNewStreamTemplate() {
@@ -99,7 +103,7 @@ function getNewStreamTemplate() {
     messages: 0,
     current: false
   }
-  return JSON.parse( JSON.stringify( streamTemplate ) );
+  return JSON.parse(JSON.stringify(streamTemplate));
 }
 
 function getNewCurrencyProfile() {
@@ -149,7 +153,7 @@ function getNewCurrencyProfile() {
     }
   }
 
-  return JSON.parse( JSON.stringify( currencyTemplate ) );
+  return JSON.parse(JSON.stringify(currencyTemplate));
 }
 
 function getNewHorseTemplate() {
@@ -168,7 +172,7 @@ function getNewHorseTemplate() {
     owner: "no one"
   }
 
-  return JSON.parse( JSON.stringify( horseTemplate ) );
+  return JSON.parse(JSON.stringify(horseTemplate));
 }
 
 module.exports = {
