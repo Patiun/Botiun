@@ -17,13 +17,14 @@ const gambling = require('./Gambling_Module.js');
 const currency = require('./Currency_Module.js');
 const notice = require('./Notice_Module.js');
 const race = require('./Race_Module.js');
+const greet = require('./Greet_Module.js');
 
 const VERBOSE = true;
 const VIEWER_UPDATE_INTERVAL = 30; //Seconds
 const STREAM_UPDATE_INTERVAL = 120; //Seconds
 const S_TO_MS = 1000;
 const CURRENCY_PER_INTERVAL = 1;
-const modules = [currency, notice, race]; //gambling
+const modules = [currency, notice, race, greet]; //gambling
 const channel = "Patiun";
 const rooms = {
   main: "Patiun",
@@ -44,6 +45,7 @@ var lastUsers = {
 var logFilename = "Botiun_";
 var currentUsers = [];
 var ignoredUsers = [];
+var alertedUsers = [];
 var live = false;
 var allowedToPost = false;
 var streamObject = {};
@@ -175,9 +177,10 @@ function checkForStreamChanges() {
       'Client-ID': constants.options.clientId
     }
   }).then(response => {
-    if (response.data.length > 0) {
-      streamObj = response.data[0];
-      //console.log( streamObj );
+    //console.log(response.data);
+    if (response.data.data.length > 0) {
+      streamObj = response.data[0] || response.data;
+      //  console.log(streamObj);
       if (!live) {
         log("Detected Stream Going Live");
         startStream(streamObj);
@@ -205,13 +208,13 @@ function checkForViewerChanges() {
       for (let i = 0; i < keys.length; i++) {
         let key = keys[i];
         for (let j = 0; j < differences.join[key].length; j++) {
-          joinUser(differences.join[key][j]);
+          joinUser(differences.join[key][j], key);
         }
         for (let j = 0; j < differences.stay[key].length; j++) {
-          stayUser(differences.stay[key][j]);
+          stayUser(differences.stay[key][j], key);
         }
         for (let j = 0; j < differences.part[key].length; j++) {
-          partUser(differences.part[key][j]);
+          partUser(differences.part[key][j], key);
         }
       }
     });
@@ -222,7 +225,7 @@ function checkForViewerChanges() {
   });
 }
 
-function stayUser(username) {
+function stayUser(username, userType) {
   if (ignoredUsers.includes(username)) {
     return;
   }
@@ -307,7 +310,7 @@ function onJoinHandler(target, username, self) {
   JoinUser(username);
 }
 
-function joinUser(username) {
+function joinUser(username, userType) {
   if (ignoredUsers.includes(username)) {
     return;
   }
@@ -348,13 +351,25 @@ function joinUser(username) {
     twitchID: username
   }).then((result) => {
     if (result.length > 0) {
-      database.update(constants.collectionUsers, {
-        twitchID: username
-      }, {
+      updateLoad = {
         $set: {
           lastJoin: d
         }
-      });
+      }
+
+      if (userType.toLowerCase() === 'vips') {
+        updateLoad['$set'].isVIP = true;
+      }
+      if (userType.toLowerCase() === 'sub') {
+        updateLoad['$set'].isSub = true;
+      }
+      if (userType.toLowerCase() === 'mod' || userType.toLowerCase() === 'moderator') {
+        updateLoad['$set'].isMod = true;
+      }
+
+      database.update(constants.collectionUsers, {
+        twitchID: username
+      }, updateLoad);
     } else {
       let newUser = database.getNewUserTemplate();
       newUser.twitchID = username;
@@ -368,6 +383,9 @@ function joinUser(username) {
 
       database.insert(constants.collectionCurrency, newCurrency);
     }
+    if (live) {
+      greet.greetUser(username);
+    }
   }).catch(() => {
     log("[ERROR]: (Botiun.js onJoinHandler GET) Something went wrong! ");
   });
@@ -380,7 +398,7 @@ function onPartHandler(target, username, self) {
   partUser(username);
 }
 
-function partUser(username) {
+function partUser(username, userType) {
   if (ignoredUsers.includes(username)) {
     return;
   }
@@ -439,6 +457,13 @@ function onMessageHandler(target, context, msg, self) {
   });
 
   if (live) {
+    if (!currentUsers.includes[username]) {
+      if (context.subscriber) {
+        joinUser(username, "sub")
+      }
+      joinUser(username);
+    }
+
     //DATABASE CALL: UPDATE MESSAGES FOR STREAM
     database.get(constants.collectionStreams, {
       current: true
@@ -482,7 +507,7 @@ function startStream(streamData) {
 
   log("Starting Stream...");
   live = true;
-
+  alertedUsers = [];
   let d = new Date();
   var newStreamEntry = database.getNewStreamTemplate();
   newStreamEntry.startTime = d;
@@ -566,6 +591,15 @@ function handleCommands(target, context, self, msgTokens) {
   //log( `Command "${msgTokens[0]}" from ${username} is not a valid command` );
 }
 
+module.exports.playSound = playSound = function(soundFileName) {
+  //Check if sound exists
+  emit('playSound', soundFileName);
+}
+
+module.exports.emit = emit = function(emitionCall, data) {
+  io.sockets.emit(emitionCall, data);
+}
+
 module.exports.log = log = function(msg) {
   let d = new Date();
   let timeStamp = d.toTimeString().split(' ')[0];
@@ -618,7 +652,7 @@ module.exports.sendAction = sendAction = function(msg, room) {
 }
 
 module.exports.hasUser = hasUser = function(username) {
-  return currentUsers.includes(username) || currenUsers.includes(username.toLowerCase());
+  return currentUsers.includes(username) || currentUsers.includes(username.toLowerCase());
 }
 
 //Console Input Handler
@@ -628,7 +662,7 @@ stdin.addListener("data", function(d) {
   var msgTokens = msgStripped.split(' ');
   if (msg === "play") {
     console.log("SENDING PLAY");
-    io.sockets.emit('play', "/Welcome-Shrek.mp3");
+    io.sockets.emit('playSound', "/Welcome-Shrek.mp3");
   }
 
   if (['end'].includes(msgTokens[0].toLowerCase())) {

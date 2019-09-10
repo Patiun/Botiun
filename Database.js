@@ -88,7 +88,10 @@ function getNewUserTemplate() {
     isSub: false,
     isVIP: false,
     isMod: false,
-    isHappyPerson: false
+    isHappyPerson: false,
+    config: {
+      entranceAlert: false
+    }
   };
 
   return JSON.parse(JSON.stringify(userTemplate));
@@ -160,6 +163,8 @@ function getNewHorseTemplate() {
   var horseTemplate = {
     name: "NAME",
     speed: 0,
+    stamina: 0,
+    wildness: 0,
     age: 0,
     gender: "F",
     record: {

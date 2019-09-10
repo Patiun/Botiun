@@ -28,20 +28,27 @@
 
     $(function() {
       var socket = io();
-      socket.on('play', function(audioFileName) {
+      //Play Sound
+      socket.on('playSound', function(audioFileName) {
         console.log("Recieved play");
         playSound(audioFileName);
       });
 
-      function showDiv(text) {
-        $('div', '#container').stop().show();
-        console.log(text);
-        $("#donate-info p").text(text);
-      }
-
-      function hideDiv() {
-        $('div', '#container').stop().hide();
-      }
+      //Prepare Race
+      socket.on('racePrepare', function(raceOverlay) {
+        console.log("Recieved racePrepare");
+        $('#race-container').html(raceOverlay);
+      });
+      //Update Race
+      socket.on('raceUpdate', function(raceOverlay) {
+        console.log("Recieved raceUpdate");
+        $('#race-container').html(raceOverlay);
+      });
+      //Clear Race
+      socket.on('raceClear', function(raceOverlay) {
+        console.log("Recieved raceClear");
+        $('#race-container').html(null);
+      });
     });
   </script>
 </head>
@@ -49,10 +56,9 @@
 <body>
   <div id='container'>
     <div class='display' style='display:none;'>
-      <div id='donate-info'>
-        <div class="strokeme"></div>
-      </div>
     </div>
+  </div>
+  <div id="race-container" style="background-color:rgba(255,255,255,0.4);display:flex;position:absolute;bottom:0;width:98%;margin:1%">
   </div>
   <div id='sound'>
   </div>
