@@ -26,12 +26,23 @@
       audio.play();
     }
 
+    function welcomeUser(username, audioFileName) {
+      playSound(audioFileName);
+      //$("#container").html(`Welcome ${username}`);
+      return 1;
+    }
+
     $(function() {
       var socket = io();
       //Play Sound
       socket.on('playSound', function(audioFileName) {
         console.log("Recieved play");
         playSound(audioFileName);
+      });
+      //Welcome User
+      socket.on('welcomeUser', function(username, audioFilename) {
+        console.log("Received welcomeUser for " + username);
+        welcomeUser(username, audioFileName);
       });
 
       //Prepare Race
@@ -58,7 +69,7 @@
     <div class='display' style='display:none;'>
     </div>
   </div>
-  <div id="race-container" style="background-color:rgba(255,255,255,0.4);display:flex;position:absolute;bottom:0;width:98%;margin:1%">
+  <div id="race-container" style="display:flex;position:absolute;top:0;width:98%;margin:1%">
   </div>
   <div id='sound'>
   </div>

@@ -89,6 +89,15 @@ function getNewUserTemplate() {
     isVIP: false,
     isMod: false,
     isHappyPerson: false,
+    activity: [],
+    details: {
+      birthday: "NONE",
+      age: "NONE",
+      name: "NONE",
+      gender: "NONE",
+      preferedPronouns: "NONE",
+      twitter: "NONE"
+    },
     config: {
       entranceAlert: false
     }

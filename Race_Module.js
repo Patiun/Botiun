@@ -5,19 +5,32 @@ const currency = require('./Currency_Module.js');
 const uuid = require('uuid/v1');
 
 var name = "Race Module";
-var commands = ["load", "save", "new", "list", "make", "draw", "run", "finish", "claim", "racebet", "placebet"];
+var commands = ["load", "save", "new", "list", "make", "draw", "run", "finish", "claim", "racebet", "placebet", "auto", "gen"];
 var racesAllowed = false;
+var racersLoaded = false;
+var canBet = false;
+var canPostMessages = false;
+var auto = false;
 var horses = [];
 var horseLookup = {};
-var raceCount = 1;
-var raceTickPerSec = 24;
+var raceCount = 4;
+var raceTickPerSec = 60; //24;
 var raceTickDuration = 1000 / raceTickPerSec; //100; //MS
-var staminaDrain = 33;
+var staminaDrain = 75; //33;
+var maxWildGain = 12.5;
 var races = [];
+var derby;
+var countTopRacesForDerby = 2;
 var activeRace;
 var unclaimedPayouts = {};
 var raceBets = {};
 var payoutTimeoutDuration = 1000 * 60 * 30; //30 Minutes
+var timeBetweenRaces = 1000 * 60 * 30; //30 Minutes
+var timing = {
+  raceStart: 0,
+  raceEnd: 0,
+  raceElapsed: 0
+}
 
 function init() {
   return new Promise(function(resolve, reject) {
@@ -78,7 +91,7 @@ function handleCommand(userDetails, msgTokens) {
       prepareRaces();
       break;
     case "draw":
-      raceDrawOdds();
+      setNextRace();
       break;
     case "run":
       startRace();
@@ -94,6 +107,13 @@ function handleCommand(userDetails, msgTokens) {
       let amount = msgTokens[1];
       placeBetOn(userDetails.username, amount, msgTokens);
       break;
+    case "auto":
+      auto = true;
+      prepareRaces();
+      break;
+    case "gen":
+      generateHorses();
+      break;
     default:
       botiun.log(`${command} was not handled properly in Race_Module.js`);
       break;
@@ -108,6 +128,10 @@ function forceEndRace() {
 }
 
 function prepareRaces() {
+  if (!racersLoaded) {
+    console.log("Racers are not loaded from the DB!");
+    return;
+  }
   let horseCount = horses.length;
   //let horsesPerRace = horseCount / raceCount;
   let horsesPerRace = splitIntoParts(horseCount, raceCount);
@@ -123,33 +147,91 @@ function prepareRaces() {
       horses: [],
       places: [],
       started: false,
-      finished: false
+      finished: false,
+      isDerby: false
     };
     for (let j = 0; j < horsesPerRace[i]; j++) {
       let tempHorse = unusedHorses.pop();
       tempHorse.progress = 0;
+      tempHorse.place = -1;
+      tempHorse.stamina = 100;
+      tempHorse.dayMod = ((Math.random() + Math.random()) / 2) * 0.3 + 0.8;
       newRace.horses.push(tempHorse);
     }
     races.push(newRace);
   }
 
-  console.log(races);
+  derby = {
+    horses: [],
+    places: [],
+    started: false,
+    finished: false,
+    isDerby: true
+  };
+
+  //console.log(races);
+  if (auto) {
+    setNextRace();
+  }
 }
 
 function setNextRace() {
   if (races.length > 0) {
     activeRace = races.pop();
   } else {
-    console.log("[ALERT] No Races Left");
-    return;
+    if (activeRace && !activeRace.isDerby) {
+      console.log("---------------------DERBY-PREP-----------------");
+      for (let i = 0; i < derby.horses.length; i++) {
+        console.log(derby.horses[i].name + ": " + derby.horses[i].stamina + " = " + derby.horses[i].dayMod);
+      }
+      activeRace = derby;
+    } else {
+      console.log("[ALERT] No Races Left");
+      if (auto) {
+        prepareRaces();
+      }
+      return;
+    }
   }
-  console.log(activeRace);
+  raceDrawOdds();
+  //console.log(activeRace);
   botiun.emit('racePrepare', populateRaceOverlay());
+  if (auto) {
+    raceDrawOdds();
+  }
 }
 
 function raceDrawOdds() {
   //// TEMP:
-  setNextRace();
+  let totalWins = activeRace.horses.length;
+  for (let i = 0; i < activeRace.horses.length; i++) {
+    if (activeRace.isDerby) {
+      totalWins += activeRace.horses[i].record.derbyWins;
+    } else {
+      totalWins += activeRace.horses[i].record.raceWins;
+    }
+  }
+
+  let roughOdds = {};
+  let chanceTotal = 0;
+  for (let i = 0; i < activeRace.horses.length; i++) {
+    let chance = 0;
+    if (activeRace.isDerby) {
+      chance = (activeRace.horses[i].record.derbyWins + 1);
+    } else {
+      chance = (activeRace.horses[i].record.raceWins + 1);
+    }
+    roughOdds[getHorseNameReduced(activeRace.horses[i].name)] = [chance, totalWins, chance / totalWins];
+    chanceTotal += chance / totalWins;
+  }
+
+  console.log(chanceTotal);
+  console.log(roughOdds);
+
+  /*
+    setTimeOut(() => {
+      startRace();
+    }, timeBetweenRaces); */
 }
 
 var tickCount = 0;
@@ -170,25 +252,30 @@ function startRace() {
 
   activeRace.started = true;
   tickCount = 0;
-
+  if (activeRace.isDerby) {
+    console.log('---------------------DERBY---------------------');
+  } else {
+    console.log('---------------------RACE----------------------');
+  }
+  timing.raceStart = new Date();
   activeRace.interval = setInterval(raceTick, raceTickDuration);
 }
 
 function advanceHorse(horse) {
   if (horse.progress >= 0 && horse.progress < 100) {
     //let amount = (horse.speed / ((Math.random() * 15) + 45)) * ((Math.random() * 0.4) + 0.35);
-    let wildness = 0.9 * (horse.wildness / 100);
-    let avgGain = (((horse.speed) / 10) / raceTickPerSec);
+    let wildness = (horse.wildness / 100);
+    let avgGainUnModed = (((horse.speed) / 10) / raceTickPerSec) * horse.dayMod;
     //Adjust avgGain for stamina drain
-    avgGain = avgGain * (horse.stamina / 100 * 0.4 + 0.6);
-    let gain = avgGain * (Math.random() * (1 + (wildness) / 2) + (wildness) / 2);
+    let avgGain = avgGainUnModed * (horse.stamina / 100 * 0.4 + 0.6);
+    let gain = avgGain + (maxWildGain / raceTickPerSec) * ((Math.random() + Math.random() + Math.random()) / 3 * (wildness) - (wildness) / 2);
     if (gain > avgGain) {
-      horse.stamina -= (staminaDrain / raceTickPerSec) //* 1.2 * ((gain - avgGain) / avgGain);
+      horse.stamina -= (staminaDrain / raceTickPerSec) * ((gain - avgGain) / avgGain);
       if (horse.stamina < 0) {
         horse.stamina = 0;
       }
     } else {
-      horse.stamina += (staminaDrain * 0.75) / raceTickPerSec //* ((avgGain - gain) / avgGain);
+      horse.stamina += (staminaDrain * 0.75) / raceTickPerSec * ((avgGain - gain) / avgGain);
       if (horse.stamina > 100) {
         horse.stamina = 100;
       }
@@ -254,13 +341,46 @@ function endRace() {
   console.log("In third: " + activeRace.places[2].name);
 
   //Update Horse Winner
-  let horse = horseLookup[getHorseNameReduced(winner)];
-  horse.record.raceWins++;
-  saveHorseToDB(horse);
+  if (activeRace.isDerby) {
+    for (let i = 0; i < activeRace.places.length; i++) {
+      let tmpHorse = horseLookup[getHorseNameReduced(activeRace.places[i].name)];
+      if (i == 0) {
+        tmpHorse.record.derbyWins++;
+      }
+      tmpHorse.record.derbies++;
+      saveHorseToDB(tmpHorse);
+    }
+  } else {
+    for (let i = 0; i < activeRace.places.length; i++) {
+      let tmpHorse = horseLookup[getHorseNameReduced(activeRace.places[i].name)];
+      if (i == 0) {
+        activeRace.places[i].record.raceWins++;
+        tmpHorse.record.raceWins++;
+      }
+      activeRace.places[i].record.races++;
+      tmpHorse.record.races++;
+      saveHorseToDB(tmpHorse);
+    }
+
+    //Add top horses to derby
+    for (let i = 0; i < countTopRacesForDerby; i++) {
+      activeRace.places[i].progress = 0;
+      activeRace.places[i].place = -1;
+      derby.horses.push(activeRace.places[i]);
+      console.log(activeRace.places[i].name + " qualified for the Derby!");
+    }
+  }
   stockPayOut(activeRace.places[0]);
   setTimeout(() => {
     botiun.emit('raceClear');
-  }, 15 * 1000);
+    if (auto) {
+      setNextRace();
+    }
+  }, 30 * 1000); //Seconds until clear
+
+  timing.raceEnd = new Date();
+  timing.raceElapsed = timing.raceEnd - timing.raceStart;
+  console.log("Race took " + timing.raceElapsed / 1000 + "s");
 }
 
 function stockPayOut(horse) {
@@ -336,7 +456,11 @@ function claimWinnings(user) {
 }
 
 function placeBetOn(user, amount, horseParams) {
-  console.log("Trying to place bet for " + amount);
+  console.log("Trying to place bet for " + amount + " on " + horseParams);
+  if (!horseParams && horseParams.length > 0) {
+    console.log("Invalid horseParams");
+    return;
+  }
   currency.getCurrencyThen(user, amount, (result) => {
     console.log("[!!!] " + result);
     //currency.addCurrencyToUserFrom(user, -result, "race");
@@ -380,30 +504,40 @@ function populateRaceOverlay() {
 }
 
 function getHorseOverlayElement(horseName, progress, place) {
-  let backgroundFill = 'rgba(25,25,25,0.6)';
-  let foregroundFill = 'rgb(0,155,155)'
+  let backgroundFill = 'rgba(25,25,25,0.4)';
+  let foregroundFill = 'rgba(0,155,155,0.75)'
+
+  let horseImage = `<img id='img-${horseName} 'src='Horse_gallop.gif' style='height:25px;position:absolute;right:0px;top:0px' />`
 
   let displayName = horseName;
   if (place === 1) {
-    foregroundFill = 'rgb(0,255,0)';
-    displayName = horseName + " - WINNER";
+    foregroundFill = 'rgba(214,175,54,0.75)';
+    displayName = horseName + " - 1st";
+    horseImage = '';
   } else if (place === 2) {
-    foregroundFill = 'rgb(150,150,150)';
-    displayName = horseName + " - SECOND";
+    foregroundFill = 'rgba(167,167,173,0.75)';
+    displayName = horseName + " - 2nd";
+    horseImage = '';
   } else if (place === 3) {
-    foregroundFill = 'rgb(255,0,0)';
-    displayName = horseName + " - THIRD";
+    foregroundFill = 'rgba(167,112,68,0.75)';
+    displayName = horseName + " - 3rd";
+    horseImage = '';
+  } else if (place > 3) {
+    foregroundFill = 'rgba(0,50,50,0.4)';
+    displayName = horseName + " - " + place + "th";
+    horseImage = '';
   }
 
   if (progress > 100) {
     progress = 100;
   }
   let width = progress + "%";
-
+  //style="height:100%;background-color:${foregroundFill};width:${width};"
   return `<div id="racer-${horseName}" style="height:25px;display:flex;margin:0.5%">
     <div id="progress-${horseName}" style="width:100%;outline:1px inset black;background-color:${backgroundFill}">
-      <font color="white" style="position:absolute">${displayName}</font>
-      <div id="bar-${horseName}" style="height:100%;background-color:${foregroundFill};width:${width};">
+      <div id="bar-${horseName}" style="height:100%;background-color:${foregroundFill};width:${width};position:relative">
+        <font color="white" style="position:absolute;z:0;white-space:nowrap;padding:3px;font-size:19px">${displayName}</font>
+        ${horseImage};
       </div>
     </div>
   </div>`
@@ -413,9 +547,11 @@ function getHorseOverlayElement(horseName, progress, place) {
 //-----------------------Utility-----------------------------------------------
 
 function loadAllHorsesFromDB() {
+  racersLoaded = false;
   database.get(constants.collectionHorses, {}).then((results) => {
     horses = results;
     botiun.log("Horses loaded from Database");
+    racersLoaded = true;
     for (let i = 0; i < horses.length; i++) {
       let horseNameReduced = getHorseNameReduced(horses[i].name);
       horseLookup[horseNameReduced] = horses[i];
@@ -436,6 +572,14 @@ function saveHorseToDB(horse) {
   }, {
     $set: horse
   });
+  //Update internal system
+  horseLookup[getHorseNameReduced(name)] = horse;
+  for (let i = 0; i < horses.length; i++) {
+    if (horses[i].name === horse.name) {
+      horses[i] = horse;
+      break;
+    }
+  }
 }
 
 function makeNewHorse(name, speed, wildness, gender) {
@@ -448,13 +592,13 @@ function makeNewHorse(name, speed, wildness, gender) {
     return;
   }
   if (!speed) {
-    speed = Math.floor(50 + Math.random() * 20);
+    speed = Math.floor(50 + (Math.random() + Math.random() + Math.random()) / 3 * 20);
   }
   if (!gender) {
     gender = (Math.random() < 0.5) ? "M" : "F";
   }
   if (!wildness) {
-    wildness = (Math.floor(Math.random() * 80 + 20));
+    wildness = (Math.floor((Math.random() + Math.random() + Math.random()) / 3 * 75 + 25));
   }
   let newHorse = database.getNewHorseTemplate();
   newHorse.name = name;
@@ -467,6 +611,14 @@ function makeNewHorse(name, speed, wildness, gender) {
   database.insert(constants.collectionHorses, newHorse);
   console.log(`${name} created`);
   return newHorse;
+}
+
+function generateHorses() {
+  let listOfHorses = ["Lil-Sebastian", "Night-Mare", "Butt-Stallion", "Roach", "Silver", "Ponyboy", "Mane-Attraction", "Harry-Trotter", "Mr-Ed", "Pony-Soprano", "Talk-Derby-to-Me", "Joseph-Stalling", "Unicorn", "Black-Beauty", "Maple-Stirrup", "Rein-Man", "Neigh-Sayer", "Tater-Trot", "Shadowfax", "Elmers-Revenge", "Al-Capony", "Kevin", "Dolly-Llama", "Shadowcorn", "Forrest-Jump", "Usain-Colt", "Gene"];
+
+  for (let i = 0; i < listOfHorses.length; i++) {
+    makeNewHorse(listOfHorses[i]);
+  }
 }
 
 function horseExists(name) {

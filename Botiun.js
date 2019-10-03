@@ -47,7 +47,7 @@ var currentUsers = [];
 var ignoredUsers = [];
 var alertedUsers = [];
 var live = false;
-var allowedToPost = false;
+var allowedToPost = true;
 var streamObject = {};
 const opts = {
   options: constants.options,
@@ -116,7 +116,7 @@ function onVipHandler(channel, vips) {
 client.on("cheer", onCheerHandler);
 
 function onCheerHandler(channel, userstate, message) {
-  console.log(channel, userstate, message);
+  console.log("Cheer", channel, userstate, message);
 }
 //client.on( 'join', onJoinHandler );
 //client.on( 'part', onPartHandler );
@@ -144,6 +144,7 @@ app.get('/overlay', function(req, res) {
   res.sendFile('D:/projects/github/botiun/Public_Html/overlay.html');
 });
 app.use(express.static('Sounds'));
+app.use(express.static('Public_Html'));
 
 io.on('connection', (socket) => {
   // when the client emits 'donate', this listens and executes
@@ -338,57 +339,62 @@ function joinUser(username, userType) {
         }
       });
     }
-  }
 
 
-  let d = new Date();
-  let dateString = d.getUTCDate().toString();
+    let d = new Date();
+    let dateString = d.getUTCDate().toString();
 
-  log(`${username} has joined the channel`);
+    log(`${username} has joined the channel`);
 
-  //DATABASE CALL: UPDATE USER ON JOIN
-  database.get(constants.collectionUsers, {
-    twitchID: username
-  }).then((result) => {
-    if (result.length > 0) {
-      updateLoad = {
-        $set: {
-          lastJoin: d
+    //DATABASE CALL: UPDATE USER ON JOIN
+    database.get(constants.collectionUsers, {
+      twitchID: username
+    }).then((result) => {
+      if (result.length > 0) {
+        updateLoad = {
+          $set: {
+            lastJoin: d
+          }
         }
+        console.log("Join Data:", username, userType);
+
+        if (userType) {
+          if (userType.toLowerCase() === 'vips') {
+            updateLoad['$set']['isVIP'] = true;
+          }
+          if (userType.toLowerCase() === 'sub') {
+            updateLoad['$set']['isSub'] = true;
+          }
+          if (userType.toLowerCase() === 'mod' || userType.toLowerCase() === 'moderator') {
+            updateLoad['$set']['isMod'] = true;
+          }
+        }
+
+        database.update(constants.collectionUsers, {
+          twitchID: username
+        }, updateLoad);
+      } else {
+        let newUser = database.getNewUserTemplate();
+        newUser.twitchID = username;
+        newUser.lastJoin = d;
+
+        //DATABASE CALL: CREATE USER
+        database.insert(constants.collectionUsers, newUser);
+
+        let newCurrency = database.getNewCurrencyProfile();
+        newCurrency.twitchID = username;
+
+        database.insert(constants.collectionCurrency, newCurrency);
       }
+    }).catch((error) => {
+      console.log(error);
+      log("[ERROR]: (Botiun.js onJoinHandler GET) Something went wrong! ");
+    });
 
-      if (userType.toLowerCase() === 'vips') {
-        updateLoad['$set'].isVIP = true;
-      }
-      if (userType.toLowerCase() === 'sub') {
-        updateLoad['$set'].isSub = true;
-      }
-      if (userType.toLowerCase() === 'mod' || userType.toLowerCase() === 'moderator') {
-        updateLoad['$set'].isMod = true;
-      }
-
-      database.update(constants.collectionUsers, {
-        twitchID: username
-      }, updateLoad);
-    } else {
-      let newUser = database.getNewUserTemplate();
-      newUser.twitchID = username;
-      newUser.lastJoin = d;
-
-      //DATABASE CALL: CREATE USER
-      database.insert(constants.collectionUsers, newUser);
-
-      let newCurrency = database.getNewCurrencyProfile();
-      newCurrency.twitchID = username;
-
-      database.insert(constants.collectionCurrency, newCurrency);
-    }
     if (live) {
       greet.greetUser(username);
     }
-  }).catch(() => {
-    log("[ERROR]: (Botiun.js onJoinHandler GET) Something went wrong! ");
-  });
+  }
 }
 
 //////////////////
@@ -435,26 +441,28 @@ function onMessageHandler(target, context, msg, self) {
   var username = context['username'];
   //log( `Incoming message from ${username}: "${msg}"` );
 
-  //DATABASE CALL: UPDATE USER MESSAGES
-  database.get(constants.collectionUsers, {
-    twitchID: username
-  }).then((result) => {
-    for (let i = 0; i < result.length; i++) {
-      let count = result[i].messages + 1;
-      if (count === undefined || isNaN(count)) {
-        count = 1;
-      }
-      database.update(constants.collectionUsers, {
-        twitchID: username
-      }, {
-        $set: {
-          messages: count
+  //DATABASE CALL: UPDATE USER MESSAGES TODO? REMOVE
+  if (false) {
+    database.get(constants.collectionUsers, {
+      twitchID: username
+    }).then((result) => {
+      for (let i = 0; i < result.length; i++) {
+        let count = result[i].messages + 1;
+        if (count === undefined || isNaN(count)) {
+          count = 1;
         }
-      });
-    }
-  }).catch(() => {
-    log("[ERROR]: (Botiun.js onMessageHandler GET) Something went wrong! ");
-  });
+        database.update(constants.collectionUsers, {
+          twitchID: username
+        }, {
+          $set: {
+            messages: count
+          }
+        });
+      }
+    }).catch(() => {
+      log("[ERROR]: (Botiun.js onMessageHandler GET) Something went wrong! ");
+    });
+  }
 
   if (live) {
     if (!currentUsers.includes[username]) {
@@ -477,6 +485,8 @@ function onMessageHandler(target, context, msg, self) {
           }
         })
       }
+    }).catch(() => {
+      log("[ERROR]: (Botiun.js onMessageHandler GET) Something went wrong! ");
     });
   }
 
