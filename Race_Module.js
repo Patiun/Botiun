@@ -1115,11 +1115,12 @@ function getTimeToNextRace() {
     botiun.sendMessage("There is no race scheduled.");
     return;
   }
-  console.log(timing.nextRaceStart);
+  //console.log(timing.nextRaceStart);
   let timeRemaining = timing.nextRaceStart - (new Date()).getTime();
-  let timeRemainingInSec = timeRemaining / 1000;
-  let timeRemainingMinutes = Math.floor(timeRemainingInSec / 60);
-  let timeRemainingSeconds = timeRemainingInSec - timeRemainingMinutes * 60;
+  console.log(timeRemaining);
+  let timeRemainingInSec = Math.floor(timeRemaining / 1000);
+  let timeRemainingMinutes = Math.floor(timeRemainingInSec / 60 << 0);
+  let timeRemainingSeconds = Math.floor(timeRemainingInSec % 60);
   let output = str_pad_left(timeRemainingMinutes, '0', 2) + ':' + str_pad_left(timeRemainingSeconds, '0', 2);
   botiun.sendMessage(`The next race will begin in ${output}!`);
 }
