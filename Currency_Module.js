@@ -136,7 +136,7 @@ function tellUserCurrencyFor(username, target) {
 
 function getCurrencyThen(username, amount, callback) {
   try {
-    if ((amount.toLowerCase != 'all' && amount.substr(amount.length - 1) != '%' && amount.substr(amount.length - 1).toLowerCase() != 'k' && isNaN(parseInt(amount))) || parseInt(amount) <= 0) {
+    if ((amount.toLowerCase() != 'all' && amount.substr(amount.length - 1) != '%' && amount.substr(amount.length - 1).toLowerCase() != 'k' && isNaN(parseInt(amount))) || parseInt(amount) <= 0) {
       console.log(amount);
       botiun.sendMessageToUser(username, `How about you enter a value that is a real positive number?`);
     }
@@ -156,15 +156,29 @@ function getCurrencyThen(username, amount, callback) {
             requiredAmount = Math.ceil((parseFloat(amount) / 100) * userPoints);
           } else
           if (amount.substr(amount.length - 1).toLowerCase() === 'k') {
-            requiredAmount = parseInt(amount) * 1000;
+            requiredAmount = parseInt(amount.substr(0, amount.length)) * 1000;
+            if (amount.toLowerCase() === 'k') {
+              requiredAmount = 1000;
+            }
+          } else {
+            botiun.sendMessageToUser(username, `I am sorry, ${amount} is either invalid or unsupported as an amount.`);
+            return;
           }
+
+          if (isNaN(requiredAmount)) {
+            botiun.sendMessageToUser(username, `I am sorry, ${amount} is either invalid or unsupported as an amount.`);
+            return;
+          }
+
           if (requiredAmount <= userPoints) {
             callback(requiredAmount);
           } else {
             botiun.sendMessageToUser(username, `Oh no! You only have ${userPoints} but need ${requiredAmount} to do that.`);
+            return;
           }
         } else {
           botiun.log(`ERROR: No user found when checking currecy for ${username}`);
+          return;
         }
       });
     }

@@ -18,13 +18,14 @@ const currency = require('./Currency_Module.js');
 const notice = require('./Notice_Module.js');
 const race = require('./Race_Module.js');
 const greet = require('./Greet_Module.js');
+const accept = require('./Accept_Module.js');
 
 const VERBOSE = true;
 const VIEWER_UPDATE_INTERVAL = 30; //Seconds
-const STREAM_UPDATE_INTERVAL = 120; //Seconds
+const STREAM_UPDATE_INTERVAL = 60; //Seconds
 const S_TO_MS = 1000;
 const CURRENCY_PER_INTERVAL = 1;
-const modules = [currency, notice, race, greet]; //gambling
+const modules = [currency, notice, race, greet, accept]; //gambling
 const channel = "Patiun";
 const rooms = {
   main: "Patiun",
@@ -47,7 +48,7 @@ var currentUsers = [];
 var ignoredUsers = [];
 var alertedUsers = [];
 var live = false;
-var allowedToPost = true;
+var allowedToPost = false;
 var streamObject = {};
 const opts = {
   options: constants.options,
@@ -180,18 +181,19 @@ function checkForStreamChanges() {
   }).then(response => {
     //console.log(response.data);
     if (response.data.data.length > 0) {
-      streamObj = response.data[0] || response.data;
+      streamObject = response.data[0] || response.data;
+      //console.log("DATA:", streamObject);
       //  console.log(streamObj);
       if (!live) {
         log("Detected Stream Going Live");
-        startStream(streamObj);
+        startStream(streamObject);
       } else {
         //AlreadyLive
       }
     } else {
       if (live) {
         log("Detected Stream Ending");
-        endStream(streamObj);
+        endStream(streamObject);
       }
     }
   }).catch(err => {
@@ -262,7 +264,7 @@ function addPassiveCurrencyTo(username) {
       timeInStream: UPDATE_INTERVAL
     }
   } );*/
-  currency.addCurrencyToUserFrom(username, CURRENCY_PER_INTERVAL, 'passive');
+  //currency.addCurrencyToUserFrom(username, CURRENCY_PER_INTERVAL, 'passive');
 }
 
 function gatherDifferences(oldUsers, newUsers) {
@@ -441,35 +443,13 @@ function onMessageHandler(target, context, msg, self) {
   var username = context['username'];
   //log( `Incoming message from ${username}: "${msg}"` );
 
-  //DATABASE CALL: UPDATE USER MESSAGES TODO? REMOVE
-  if (false) {
-    database.get(constants.collectionUsers, {
-      twitchID: username
-    }).then((result) => {
-      for (let i = 0; i < result.length; i++) {
-        let count = result[i].messages + 1;
-        if (count === undefined || isNaN(count)) {
-          count = 1;
-        }
-        database.update(constants.collectionUsers, {
-          twitchID: username
-        }, {
-          $set: {
-            messages: count
-          }
-        });
-      }
-    }).catch(() => {
-      log("[ERROR]: (Botiun.js onMessageHandler GET) Something went wrong! ");
-    });
-  }
-
+  //console.log(context);
   if (live) {
     if (!currentUsers.includes[username]) {
       if (context.subscriber) {
         joinUser(username, "sub")
       }
-      joinUser(username);
+      joinUser(username, 'viewers');
     }
 
     //DATABASE CALL: UPDATE MESSAGES FOR STREAM
@@ -481,7 +461,9 @@ function onMessageHandler(target, context, msg, self) {
           current: true
         }, {
           $set: {
-            messages: result[0].messages + 1
+            messages: result[0].messages + 1,
+            isSub: context.subscriber,
+            isMod: context.mod
           }
         })
       }
@@ -695,6 +677,11 @@ stdin.addListener("data", function(d) {
   if (['post'].includes(msgTokens[0].toLowerCase())) {
     allowedToPost = !allowedToPost;
     log(`Posting set to ${allowedToPost}`);
+  }
+
+  if (['todo'].includes(msgTokens[0].toLowerCase())) {
+    console.log("Horse Racing\nSounds: 69, Lewd, Wilhelm, snakes, oof\nMod entry\nEntry animations\nF integration");
+
   }
 
   //Handle commandline input like it was a chat message
