@@ -189,6 +189,25 @@ function getNewHorseTemplate() {
   return JSON.parse(JSON.stringify(horseTemplate));
 }
 
+function getNewUserChatLogTemplate() {
+  var userChatLogTemplate = {
+    twitchID: "NAME",
+    messages: [],
+    commands: []
+  }
+
+  return JSON.parse(JSON.stringify(userChatLogTemplate));
+}
+
+function getNewChatLogEntryTemplate() {
+  var chatLogEntryTemplate = {
+    timeStamp: "",
+    message: ""
+  }
+
+  return JSON.parse(JSON.stringify(chatLogEntryTemplate));
+}
+
 module.exports = {
   get: get,
   getSorted: getSorted,
@@ -197,5 +216,7 @@ module.exports = {
   getNewUserTemplate: getNewUserTemplate,
   getNewStreamTemplate: getNewStreamTemplate,
   getNewCurrencyProfile: getNewCurrencyProfile,
-  getNewHorseTemplate: getNewHorseTemplate
+  getNewHorseTemplate: getNewHorseTemplate,
+  getNewUserChatLogTemplate: getNewUserChatLogTemplate,
+  getNewChatLogEntryTemplate: getNewChatLogEntryTemplate
 }

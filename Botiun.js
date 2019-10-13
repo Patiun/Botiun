@@ -19,13 +19,14 @@ const notice = require('./Notice_Module.js');
 const race = require('./Race_Module.js');
 const greet = require('./Greet_Module.js');
 const accept = require('./Accept_Module.js');
+const chat = require('./Chat_Module.js');
 
 const VERBOSE = true;
 const VIEWER_UPDATE_INTERVAL = 30; //Seconds
 const STREAM_UPDATE_INTERVAL = 60; //Seconds
 const S_TO_MS = 1000;
 const CURRENCY_PER_INTERVAL = 1;
-const modules = [currency, notice, race, greet, accept]; //gambling
+const modules = [currency, notice, race, greet, accept, chat]; //gambling
 const channel = "Patiun";
 const rooms = {
   main: "Patiun",
@@ -442,6 +443,7 @@ function onMessageHandler(target, context, msg, self) {
   }
   var username = context['username'];
   //log( `Incoming message from ${username}: "${msg}"` );
+  chat.recordChatMessage(context, msg);
 
   //console.log(context);
   if (live) {
