@@ -45,9 +45,25 @@ function handleCommand(userDetails, msgTokens) {
   }
 }
 
+//------------------------------Interaction------------------------------------
+
+function checkMessageForInteraction(userDetails, message) {
+  let username = userDetails.username;
+  let messageToks = message.toLowerCase().split(' ');
+  //console.log(username, messageToks);
+  //let test = ['he', 'is', 'a', 'genius'];
+  //let out = getArrayIntersection(test, messageToks);
+  //console.log(messageToks, test, out);
+}
+
+function getArrayIntersection(array1, array2) {
+  return array1.filter(value => array2.includes(value))
+}
+
 //------------------------------Logging----------------------------------------
 
 function recordChatMessage(userDetails, message) {
+  checkMessageForInteraction(userDetails, message);
   let username = userDetails.username;
   let date = new Date();
   let timeStamp = date.toLocaleDateString() + '-' + date.toLocaleTimeString();

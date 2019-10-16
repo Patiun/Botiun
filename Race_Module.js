@@ -498,11 +498,11 @@ function betPayout(bet) {
   let winnings = Math.floor(bet.amount * bet.payout + bet.amount);
 
   if (botiun.hasUser(user)) {
-    botiun.log(`Giving ${user} ${winnings} for bet.`);
+    botiun.sendMessage(`${user} has won ${winnings} ${constants.currencyName} for betting on ${activeRace.places[0].name}!`);
     currency.addCurrencyToUserFrom(bet.user, bet.amount * bet.payout + bet.amount, "race");
   } else {
     botiun.log(`${user} is not here so their ${winnings} ${constants.currencyName} is waiting for them.`);
-    addUnclaimedWinnings(user, winnings, "race", horse.name);
+    addUnclaimedWinnings(user, winnings, "race", activeRace.places[0].name);
   }
 }
 
@@ -512,10 +512,10 @@ function stockPayOut(horse) {
     let user = Object.keys(horse.stock)[i];
     let winnings = Math.floor(horse.stock[user] / 100 * stockWin);
     if (botiun.hasUser(user)) {
-      botiun.log(`Giving ${user} ${winnings}`)
+      botiun.sendMessage(`${user} has won ${winnings} ${constants.currencyName} for stock in ${horse.name}!`);
       currency.addCurrencyToUserFrom(user, winnings, "stock");
     } else {
-      botiun.log(`${user} is not here so their ${winnings} ${constants.currencyName} is waiting for them.`);
+      botiun.sendMessage(`${user} is not here so their ${winnings} ${constants.currencyName} is waiting for them.`);
       addUnclaimedWinnings(user, winnings, "stock", horse.name);
     }
   }
@@ -1117,7 +1117,7 @@ function getTimeToNextRace() {
   }
   //console.log(timing.nextRaceStart);
   let timeRemaining = timing.nextRaceStart - (new Date()).getTime();
-  console.log(timeRemaining);
+  //console.log(timeRemaining);
   let timeRemainingInSec = Math.floor(timeRemaining / 1000);
   let timeRemainingMinutes = Math.floor(timeRemainingInSec / 60 << 0);
   let timeRemainingSeconds = Math.floor(timeRemainingInSec % 60);

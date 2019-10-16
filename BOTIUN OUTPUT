@@ -1,0 +1,87 @@
+Resub #patiun Eiagra 0 Argh, this song... {
+  'badge-info': { subscriber: '2' },
+  badges: { subscriber: '0', 'bits-leader': '3' },
+  color: '#2E8B57',
+  'display-name': 'Eiagra',
+  emotes: null,
+  flags: null,
+  id: '79e54b6d-d2f4-4dbe-8d77-ecb889e4d42f',
+  login: 'eiagra',
+  mod: false,
+  'msg-id': 'resub',
+  'msg-param-cumulative-months': '2',
+  'msg-param-months': false,
+  'msg-param-should-share-streak': false,
+  'msg-param-sub-plan-name': 'Channel Subscription (patiun)',
+  'msg-param-sub-plan': '1000',
+  'room-id': '45825826',
+  subscriber: true,
+  'system-msg': "Eiagra subscribed at Tier 1. They've subscribed for 2 months!",
+  'tmi-sent-ts': '1571101901902',
+  'user-id': '143468094',
+  'user-type': null,
+  'emotes-raw': null,
+  'badge-info-raw': 'subscriber/2',
+  'badges-raw': 'subscriber/0,bits-leader/3',
+  'message-type': 'resub'
+} {
+  prime: false,
+  plan: '1000',
+  planName: 'Channel Subscription (patiun)'
+}
+
+Sub #patiun ObelixDk {
+  prime: true,
+  plan: 'Prime',
+  planName: 'Channel Subscription (patiun)'
+} null {
+  'badge-info': { subscriber: '0' },
+  badges: { subscriber: '0', premium: '1' },
+  color: null,
+  'display-name': 'ObelixDk',
+  emotes: null,
+  flags: null,
+  id: '13ea59d9-9aee-494c-9c3a-5d025ca5c45e',
+  login: 'obelixdk',
+  mod: false,
+  'msg-id': 'sub',
+  'msg-param-cumulative-months': true,
+  'msg-param-months': false,
+  'msg-param-should-share-streak': false,
+  'msg-param-sub-plan-name': 'Channel Subscription (patiun)',
+  'msg-param-sub-plan': 'Prime',
+  'room-id': '45825826',
+  subscriber: true,
+  'system-msg': 'ObelixDk subscribed with Twitch Prime.',
+  'tmi-sent-ts': '1571101515802',
+  'user-id': '24818226',
+  'user-type': null,
+  'emotes-raw': null,
+  'badge-info-raw': 'subscriber/0',
+  'badges-raw': 'subscriber/0,premium/1',
+  'message-type': 'sub'
+}
+
+Horse Plat:
+{
+  bobgobbo: 504696.945,
+  ngosoap: 235729.77,
+  weaver42: 64214,
+  sirquay: 80757.30500000002,
+  gemini2846: 58.17,
+  sockvortex: 12065,
+  warrkilm: 3.18,
+  meg3449: 63011.5,
+  blueeye06: 4086.8500000000004,
+  kryzlife: 15930,
+  toooschi: 2385,
+  acezplacez: 1740,
+  merodebruder: 282036,
+  xelbie: 9840,
+  orikebise: 820,
+  leonv3x: 27020,
+  blake646464: 370,
+  shawarma_god: 23023.9,
+  averageboi87: 9653.399999999998,
+  ytthatepicsnivy: 20520
+}
