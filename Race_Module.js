@@ -29,7 +29,7 @@ var countTopRacesForDerby = 2;
 var activeRace;
 var unclaimedPayouts = {};
 var raceBets = {};
-var payoutTimeoutDuration = 1000 * 60 * 30; //30 Minutes
+var payoutTimeoutDuration = 1000 * 60 * 60; //30 Minutes
 var timeBetweenRaces = 1000 * 60 * 30; //30 Minutes
 var timeBeforeNextDrawing = 10 * 1000; //20s
 var timeBeforeRunning = 5 * 1000; //20s
@@ -532,7 +532,7 @@ function addUnclaimedWinnings(user, amount, source, horseName) {
     timer: setTimeout(function() {
       for (let i = 0; i < unclaimedPayouts[user].length; i++) {
         let payout = unclaimedPayouts[user][i];
-        if (payout.id === id) {
+        if (payout.id === this.id) {
           unclaimedPayouts[user] = unclaimedPayouts[user].splice(i, 1);
           console.log("Payout for " + user + " timed out.");
           return;
@@ -592,9 +592,14 @@ function placeBetOn(user, amount, horseParams) {
     console.log("Invalid horseParams");
     return;
   }
+
+  if (amount.toLowerCase() != 'all' && isNaN(amount)) {
+    botiun.sendMessage('Proper usage of PlaceBet is "!placebet [AMOUNT] [BETTING TARGET]"');
+    return;
+  }
+
   currency.getCurrencyThen(user, amount, (result) => {
-    console.log("[!!!] " + result);
-    //currency.addCurrencyToUserFrom(user, -result, "race");
+    //console.log("[!!!] " + result);
     //Win - Comes in first
     if (horseParams.length === 3) {
       //DEFAULT CASE
@@ -606,11 +611,13 @@ function placeBetOn(user, amount, horseParams) {
         let amountPer = Math.floor(result / activeRace.horses.length);
         for (i in activeRace.horses) {
           horseNameWin = activeRace.horses[i].name;
+          currency.addCurrencyToUserFrom(user, -result, "race");
           bets.push(makeBet(user, amountPer, 'win', [horseNameWin]));
         }
         console.log("Bets placed on all horses for: " + amountPer);
       } else {
         console.log("[ERROR] Horse not in race: " + horseNameWin);
+        botiun.sendMessageToUser(user, `${horseNameWin} is not in this race.`);
       }
     } else {
       console.log("HorseParams not 3: " + horseParams.length);

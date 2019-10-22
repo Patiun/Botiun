@@ -20,13 +20,14 @@ const race = require('./Race_Module.js');
 const greet = require('./Greet_Module.js');
 const accept = require('./Accept_Module.js');
 const chat = require('./Chat_Module.js');
+const activity = require('./Activity_Module.js');
 
 const VERBOSE = true;
 const VIEWER_UPDATE_INTERVAL = 30; //Seconds
 const STREAM_UPDATE_INTERVAL = 60; //Seconds
 const S_TO_MS = 1000;
 const CURRENCY_PER_INTERVAL = 1;
-const modules = [currency, notice, race, greet, accept, chat]; //gambling
+const modules = [currency, notice, race, greet, accept, chat, activity]; //gambling
 const channel = "Patiun";
 const rooms = {
   main: "Patiun",
@@ -641,7 +642,7 @@ module.exports.sendAction = sendAction = function(msg, room) {
     }
     client.action(msg);
   } else {
-    log(`Logged Message: ${msg}`);
+    log(`Logged Action: Botiun ${msg}`);
   }
 }
 
