@@ -88,6 +88,7 @@ function getNewUserTemplate() {
     isSub: false,
     isVIP: false,
     isMod: false,
+    isRegular: false,
     isHappyPerson: false,
     activity: [],
     details: {

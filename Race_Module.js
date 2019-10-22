@@ -7,7 +7,7 @@ const uuid = require('uuid/v1');
 const fs = require('fs');
 
 var name = "Race Module";
-var commands = ["load", "save", "new", "list", "make", "draw", "run", "finish", "claim", "racebet", "placebet", "auto", "gen", "odds", "time", "buystock", "inspect", "checkstock", "sellstock"];
+var commands = ["testrace", "load", "save", "new", "list", "make", "draw", "run", "finish", "claim", "racebet", "placebet", "auto", "gen", "odds", "time", "buystock", "inspect", "checkstock", "sellstock"];
 var racesAllowed = false;
 var racersLoaded = false;
 var canBet = false;
@@ -29,8 +29,8 @@ var countTopRacesForDerby = 2;
 var activeRace;
 var unclaimedPayouts = {};
 var raceBets = {};
-var payoutTimeoutDuration = 1000 * 60 * 60; //30 Minutes
-var timeBetweenRaces = 1000 * 60 * 30; //30 Minutes
+var payoutTimeoutDuration = 1000 * 1 //60 * 60; //60 Minutes
+var timeBetweenRaces = 1000 * 60 * 1 //30; //30 Minutes
 var timeBeforeNextDrawing = 10 * 1000; //20s
 var timeBeforeRunning = 5 * 1000; //20s
 var timers = {};
@@ -164,6 +164,36 @@ function handleCommand(userDetails, msgTokens) {
       break;
     case "checkstock":
       checkRaceStockFor(userDetails.username);
+      break;
+    case "testrace":
+      if (userDetails.username === 'patiun') {
+        let horse1 = msgTokens[1];
+        let horse2 = msgTokens[2];
+        let horse3 = msgTokens[3] || null;
+        let horse4 = msgTokens[4] || null;
+
+        let fakePlaces = [null, null, null, null];
+        for (i in activeRace.horses) {
+          if (getHorseNameReduced(horse1) === getHorseNameReduced(activeRace.horses[i].name)) {
+            fakePlaces[0] = activeRace.horses[i]
+          }
+          if (getHorseNameReduced(horse2) === getHorseNameReduced(activeRace.horses[i].name)) {
+            fakePlaces[1] = activeRace.horses[i]
+          }
+          if (horse3) {
+            if (getHorseNameReduced(horse3) === getHorseNameReduced(activeRace.horses[i].name)) {
+              fakePlaces[2] = activeRace.horses[i]
+            }
+          }
+          if (horse4) {
+            if (getHorseNameReduced(horse4) === getHorseNameReduced(activeRace.horses[i].name)) {
+              fakePlaces[3] = activeRace.horses[i]
+            }
+          }
+        }
+
+        handleBetPayouts(fakePlaces);
+      }
       break;
     default:
       botiun.log(`${command} was not handled properly in Race_Module.js`);
@@ -487,6 +517,52 @@ function handleBetPayouts(places) {
             betPayout(bet);
           }
           break;
+        case 'place':
+          let placedHorses = [];
+          for (let i = 0; i < 2; i++) {
+            placedHorses.push(places[i].name);
+            placedHorses.push(getHorseNameReduced(places[i].name));
+          }
+          for (i in bet.targets) {
+            let horseName = bet.targets[i];
+            if (placedHorses.includes(horseName)) {
+              betPayout(bet);
+            }
+          }
+          break;
+        case 'show':
+          let shownHorses = [];
+          for (let i = 0; i < 3; i++) {
+            shownHorses.push(places[i].name);
+            shownHorses.push(getHorseNameReduced(places[i].name));
+          }
+          for (i in bet.targets) {
+            let horseName = bet.targets[i];
+            if (shownHorses.includes(horseName)) {
+              betPayout(bet);
+            }
+          }
+          break;
+        case 'exacta':
+          if ((bet.targets[0] === places[0].name || bet.targets[0] === getHorseNameReduced(places[0].name)) && (bet.targets[1] === places[1].name || bet.targets[1] === getHorseNameReduced(places[1].name))) {
+            betPayout(bet);
+          }
+          break;
+        case 'trifecta':
+          if ((bet.targets[0] === places[0].name || bet.targets[0] === getHorseNameReduced(places[0].name)) && (bet.targets[1] === places[1].name || bet.targets[1] === getHorseNameReduced(places[1].name)) && (bet.targets[2] === places[2].name || bet.targets[2] === getHorseNameReduced(places[2].name))) {
+            betPayout(bet);
+          }
+          break;
+        case 'superfecta':
+          if ((bet.targets[0] === places[0].name || bet.targets[0] === getHorseNameReduced(places[0].name)) && (bet.targets[1] === places[1].name || bet.targets[1] === getHorseNameReduced(places[1].name)) && (bet.targets[2] === places[2].name || bet.targets[2] === getHorseNameReduced(places[2].name)) && (bet.targets[3] === places[3].name || bet.targets[3] === getHorseNameReduced(places[3].name))) {
+            betPayout(bet);
+          }
+          break;
+        case 'quinella':
+          if ((bet.targets[0] === places[0].name || bet.targets[0] === getHorseNameReduced(places[0].name) || bet.targets[0] === places[1].name || bet.targets[0] === getHorseNameReduced(places[1].name)) && (bet.targets[1] === places[0].name || bet.targets[1] === getHorseNameReduced(places[0].name) || bet.targets[1] === places[1].name || bet.targets[1] === getHorseNameReduced(places[1].name))) {
+            betPayout(bet);
+          }
+          break;
       }
     }
     resolve();
@@ -498,11 +574,11 @@ function betPayout(bet) {
   let winnings = Math.floor(bet.amount * bet.payout + bet.amount);
 
   if (botiun.hasUser(user)) {
-    botiun.sendMessage(`${user} has won ${winnings} ${constants.currencyName} for betting on ${activeRace.places[0].name}!`);
+    botiun.sendMessage(`${user} has won ${winnings} ${constants.currencyName} for betting on ${bet.targets}!`);
     currency.addCurrencyToUserFrom(bet.user, bet.amount * bet.payout + bet.amount, "race");
   } else {
     botiun.log(`${user} is not here so their ${winnings} ${constants.currencyName} is waiting for them.`);
-    addUnclaimedWinnings(user, winnings, "race", activeRace.places[0].name);
+    addUnclaimedWinnings(user, winnings, "race", bet.targets);
   }
 }
 
@@ -587,7 +663,9 @@ function placeBetOn(user, amount, horseParams) {
     botiun.sendMessageToUser(user, "Betting is currently closed.");
     return;
   }
-  console.log("Trying to place bet for " + amount + " on " + horseParams);
+
+  console.log("[DEBUG] Trying to place bet for " + amount + " on [" + horseParams + "]");
+
   if (!horseParams && horseParams.length > 0) {
     console.log("Invalid horseParams");
     return;
@@ -604,6 +682,8 @@ function placeBetOn(user, amount, horseParams) {
     if (horseParams.length === 3) {
       //DEFAULT CASE
       let horseNameWin = horseParams[2];
+      placeBetWin(user, result, horseNameWin)
+      /*
       console.log(horseNameWin);
       if (horseInRace(horseNameWin)) {
         bets.push(makeBet(user, result, 'win', [horseParams[2]]));
@@ -619,9 +699,54 @@ function placeBetOn(user, amount, horseParams) {
         console.log("[ERROR] Horse not in race: " + horseNameWin);
         botiun.sendMessageToUser(user, `${horseNameWin} is not in this race.`);
       }
+      */
+    } else if (horseParams.length > 3) {
+      const betType = horseParams[2].toLowerCase();
+      switch (betType) {
+        case 'win':
+          //Win - Comes in first
+          placeBetWin(user, result, horseParams.slice(3, horseParams.length));
+          break;
+        case 'place':
+          //place - Comes in first or second
+          placeBetPlace(user, result, horseParams.slice(3, horseParams.length));
+          break;
+        case 'show':
+          //Show - Comes in first, second, or third
+          placeBetShow(user, result, horseParams.slice(3, horseParams.length));
+          break;
+        case 'across':
+        case 'board':
+        case 'acrosstheboard':
+          //Across the board - Win, Place, and Show bet
+          placeBetAcross(user, result, horseParams.slice(3, horseParams.length));
+          break;
+        case 'exacta':
+          //Exacta - wager on two horses to finish first and second in the same race in an exact order.
+          placeBetExacta(user, result, horseParams.slice(3, horseParams.length));
+          break;
+        case 'trifecta':
+        case 'tri':
+          //Trifecta - wager on three horses to finish in first, second and third in the same race in an exact order.
+          placeBetTrifecta(user, result, horseParams.slice(3, horseParams.length));
+          break;
+        case 'superfecta':
+        case 'super':
+          //Superfecta - wager on four horses to finish first, second, third and fourth in an exact order.
+          placeBetSuperfecta(user, result, horseParams.slice(3, horseParams.length));
+          break;
+        case 'quinella':
+          //Quinella - wager on two horses to finish first and second in the same race, in any order.
+          //botiun.sendMessageToUser(user, `We are sorry to report that ${betType} betting is not online yet.`);
+          placeBetQuinella(user, result, horseParams.slice(3, horseParams.length));
+          break;
+        default:
+          botiun.sendMessageToUser(user, "Apologies, but more complicated betting is not suported yet.");
+          break;
+      }
     } else {
       console.log("HorseParams not 3: " + horseParams.length);
-      botiun.sendMessageToUser(user, "Apologies, but more complicated betting is not suported yet.");
+      botiun.sendMessageToUser(user, "Proper usage of PlaceBet is !placebet [AMOUNT] [BETTING PARAMETERS]");
     }
     //place - Comes in first or second
     //Show - Comes in first, second, or third
@@ -635,7 +760,163 @@ function placeBetOn(user, amount, horseParams) {
   });
 }
 
-function makeBet(user, amount, type, details) {
+function placeBetWin(user, amount, horseNames) {
+  let horseName;
+  let amountPer;
+
+  if (horseNames[0].toLowerCase() === 'all') {
+    amountPer = Math.floor(amount / activeRace.horses.length);
+    for (i in activeRace.horses) {
+      horseName = activeRace.horses[i].name;
+      bets.push(makeBet(user, amountPer, 'win', [horseName]));
+    }
+    console.log("Bets placed on all horses for: " + amountPer);
+    return;
+  }
+  let numHorses = horseNames.length;
+  amountPer = Math.floor(amount / numHorses);
+  for (i in horseNames) {
+    horseName = horseNames[i];
+    if (horseInRace(horseName)) {
+      bets.push(makeBet(user, amountPer, 'win', [horseName]));
+    } else {
+      console.log("[ERROR] Horse not in race: " + horseName);
+      botiun.sendMessageToUser(user, `${horseName} is not in this race.`);
+    }
+  }
+}
+
+function placeBetPlace(user, amount, horseNames) {
+  let horseName;
+  let amountPer;
+  let numHorses = horseNames.length;
+  amountPer = Math.floor(amount / numHorses);
+  for (i in horseNames) {
+    horseName = horseNames[i];
+    if (horseInRace(horseName)) {
+      bets.push(makeBet(user, amountPer, 'place', [horseName]));
+    } else {
+      console.log("[ERROR] Horse not in race: " + horseName);
+      botiun.sendMessageToUser(user, `${horseName} is not in this race.`);
+    }
+  }
+}
+
+function placeBetShow(user, amount, horseNames) {
+  let horseName;
+  let amountPer;
+  let numHorses = horseNames.length;
+  amountPer = Math.floor(amount / numHorses);
+  for (i in horseNames) {
+    horseName = horseNames[i];
+    if (horseInRace(horseName)) {
+      bets.push(makeBet(user, amountPer, 'show', [horseName]));
+    } else {
+      console.log("[ERROR] Horse not in race: " + horseName);
+      botiun.sendMessageToUser(user, `${horseName} is not in this race.`);
+    }
+  }
+}
+
+function placeBetAcross(user, amount, horseNames) {
+  let horseName;
+  let amountPer;
+  let numHorses = horseNames.length;
+  amountPer = Math.floor(amount / numHorses / 3);
+  for (i in horseNames) {
+    horseName = horseNames[i];
+    if (horseInRace(horseName)) {
+      bets.push(makeBet(user, amountPer, 'win', [horseName], true));
+      bets.push(makeBet(user, amountPer, 'place', [horseName], true));
+      bets.push(makeBet(user, amountPer, 'show', [horseName], true));
+    } else {
+      console.log("[ERROR] Horse not in race: " + horseName);
+      botiun.sendMessageToUser(user, `${horseName} is not in this race.`);
+    }
+  }
+}
+
+function placeBetExacta(user, amount, horseNames) {
+  if (horseNames.length < 2) {
+    botiun.sendMessageToUser(user, "You must pick the first and second places horses in order to place an exacta bet.");
+    return;
+  }
+  let horseName;
+  let horses = [];
+  for (i in horseNames) {
+    horseName = horseNames[i];
+    if (horseInRace(horseName)) {
+      horses.push(horseName);
+    } else {
+      console.log("[ERROR] Horse not in race: " + horseName);
+      botiun.sendMessageToUser(user, `${horseName} is not in this race.`);
+      return;
+    }
+  }
+  bets.push(makeBet(user, amount, 'exacta', horses));
+}
+
+function placeBetTrifecta(user, amount, horseNames) {
+  if (horseNames.length < 3) {
+    botiun.sendMessageToUser(user, "You must pick the first, second, and third place horses in order to place a trifecta bet.");
+    return;
+  }
+  let horseName;
+  let horses = [];
+  for (i in horseNames) {
+    horseName = horseNames[i];
+    if (horseInRace(horseName)) {
+      horses.push(horseName);
+    } else {
+      console.log("[ERROR] Horse not in race: " + horseName);
+      botiun.sendMessageToUser(user, `${horseName} is not in this race.`);
+      return;
+    }
+  }
+  bets.push(makeBet(user, amount, 'trifecta', horses));
+}
+
+function placeBetSuperfecta(user, amount, horseNames) {
+  if (horseNames.length < 4) {
+    botiun.sendMessageToUser(user, "You must pick the first, second, third, and fourth place horses in order to place a superfecta bet.");
+    return;
+  }
+  let horseName;
+  let horses = [];
+  for (i in horseNames) {
+    horseName = horseNames[i];
+    if (horseInRace(horseName)) {
+      horses.push(horseName);
+    } else {
+      console.log("[ERROR] Horse not in race: " + horseName);
+      botiun.sendMessageToUser(user, `${horseName} is not in this race.`);
+      return;
+    }
+  }
+  bets.push(makeBet(user, amount, 'superfecta', horses));
+}
+
+function placeBetQuinella(user, amount, horseNames) {
+  if (horseNames.length < 2) {
+    botiun.sendMessageToUser(user, "You must pick two horses to place first or second in order to place a quinella bet.");
+    return;
+  }
+  let horseName;
+  let horses = [];
+  for (i in horseNames) {
+    horseName = horseNames[i];
+    if (horseInRace(horseName)) {
+      horses.push(horseName);
+    } else {
+      console.log("[ERROR] Horse not in race: " + horseName);
+      botiun.sendMessageToUser(user, `${horseName} is not in this race.`);
+      return;
+    }
+  }
+  bets.push(makeBet(user, amount, 'quinella', horses));
+}
+
+function makeBet(user, amount, type, details, acrossTheBoard) {
   type = type.toLowerCase();
   let betObj = {
     user: user,
@@ -645,21 +926,105 @@ function makeBet(user, amount, type, details) {
     payout: 1
   };
 
+  let horseName;
+  let horse;
   switch (type) {
     case "win":
-      let horseName = details[0];
-      let horse = horseInRace(horseName);
+      horseName = details[0];
+      horse = horseInRace(horseName);
       if (horse) {
-        //console.log(horse);
         betObj.targets.push(getHorseNameReduced(horseName));
         betObj.payout = horse.odds.against / horse.odds.for;
       } else {
         return null;
       }
       break;
+    case "place":
+      horseName = details[0];
+      horse = horseInRace(horseName);
+      if (horse) {
+        betObj.targets.push(getHorseNameReduced(horseName));
+        betObj.payout = horse.odds.against / horse.odds.for / 2;
+      } else {
+        return null;
+      }
+      break;
+    case "show":
+      horseName = details[0];
+      horse = horseInRace(horseName);
+      if (horse) {
+        betObj.targets.push(getHorseNameReduced(horseName));
+        betObj.payout = horse.odds.against / horse.odds.for / 4;
+      } else {
+        return null;
+      }
+      break;
+    case "exacta":
+      let firstHorseName = details[0];
+      let secondHorseName = details[1];
+      let firstHorse = horseInRace(firstHorseName);
+      let secondHorse = horseInRace(secondHorseName);
+      if (firstHorse && secondHorse) {
+        betObj.targets.push(getHorseNameReduced(firstHorseName));
+        betObj.targets.push(getHorseNameReduced(secondHorseName));
+        betObj.payout = firstHorse.odds.against / firstHorse.odds.for * (secondHorse.odds.against / secondHorse.odds.for+1);
+      } else {
+        return null;
+      }
+      break;
+    case "trifecta":
+      let triHorseNames = [null, null, null];
+      triHorseNames = details;
+      let triHorses = [null, null, null];
+      triHorses[0] = horseInRace(triHorseNames[0]);
+      triHorses[1] = horseInRace(triHorseNames[1]);
+      triHorses[2] = horseInRace(triHorseNames[2]);
+      if (triHorses[0] && triHorses[1] && triHorses[2]) {
+        betObj.targets.push(getHorseNameReduced(triHorseNames[0]));
+        betObj.targets.push(getHorseNameReduced(triHorseNames[1]));
+        betObj.targets.push(getHorseNameReduced(triHorseNames[2]));
+        betObj.payout = triHorses[0].odds.against / triHorses[0].odds.for * (triHorses[1].odds.against / triHorses[1].odds.for+1) * (triHorses[2].odds.against / triHorses[2].odds.for+2);
+        console.log("TRI PAYOUT: " + betObj.payout);
+      } else {
+        return null;
+      }
+      break;
+    case "superfecta":
+      let superHorseNames = [null, null, null, null];
+      superHorseNames = details;
+      let superHorses = [null, null, null, null];
+      superHorses[0] = horseInRace(superHorseNames[0]);
+      superHorses[1] = horseInRace(superHorseNames[1]);
+      superHorses[2] = horseInRace(superHorseNames[2]);
+      superHorses[3] = horseInRace(superHorseNames[3]);
+      if (superHorses[0] && superHorses[1] && superHorses[2] && superHorses[3]) {
+        betObj.targets.push(getHorseNameReduced(superHorseNames[0]));
+        betObj.targets.push(getHorseNameReduced(superHorseNames[1]));
+        betObj.targets.push(getHorseNameReduced(superHorseNames[2]));
+        betObj.targets.push(getHorseNameReduced(superHorseNames[3]));
+        betObj.payout = superHorses[0].odds.against / superHorses[0].odds.for * (superHorses[1].odds.against / superHorses[1].odds.for+1) * (superHorses[2].odds.against / superHorses[2].odds.for+2) * (superHorses[3].odds.against / superHorses[3].odds.for+3);
+        console.log("SUPER PAYOUT: " + betObj.payout);
+      } else {
+        return null;
+      }
+      break;
+    case "quinella":
+      let q1HorseName = details[0];
+      let q2HorseName = details[1];
+      let q1Horse = horseInRace(q1HorseName);
+      let q2Horse = horseInRace(q2HorseName);
+      if (q1Horse && q2Horse) {
+        betObj.targets.push(getHorseNameReduced(q1HorseName));
+        betObj.targets.push(getHorseNameReduced(q2HorseName));
+        betObj.payout = (q1Horse.odds.against / q1Horse.odds.for) + (q2Horse.odds.against / q2Horse.odds.for);
+      } else {
+        return null;
+      }
+      break;
   }
+
   //console.log(betObj);
-  //currency.addCurrencyToUserFrom(user, -amount, "race");
+  currency.addCurrencyToUserFrom(user, -amount, "race");
 
   let horsesOrderedOutput = '';
   for (i in betObj.targets) {
@@ -669,20 +1034,27 @@ function makeBet(user, amount, type, details) {
       }
     }
     if (betObj.targets.length > 2) {
-      if (i > 0 && !i <= targets.length - 1) {
+      if (i > 0 && !i <= betObj.targets.length - 1) {
         horsesOrderedOutput += ', ';
       }
 
-      if (i === targets.length - 2) {
+      if (i === betObj.targets.length - 2) {
         horsesOrderedOutput += 'and ';
       }
     }
     horsesOrderedOutput += betObj.targets[i];
   }
-  botiun.sendMessageToUser(user, "You have placed a " + betObj.type + " bet for " + betObj.amount + " on " + horsesOrderedOutput);
+  if (acrossTheBoard) {
+    if (betObj.type === 'win') {
+      botiun.sendMessageToUser(user, "You have placed an across the board bet for " + betObj.amount + " on " + horsesOrderedOutput);
+    }
+  } else {
+    botiun.sendMessageToUser(user, "You have placed a " + betObj.type + " bet for " + betObj.amount + " on " + horsesOrderedOutput);
+  }
   return betObj;
 }
 
+//Min Bets
 //Breed
 //Train
 //Age

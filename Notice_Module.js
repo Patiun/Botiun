@@ -3,7 +3,7 @@ const botiun = require('./Botiun.js');
 const database = require('./Database.js');
 
 var name = "NoticeMe Module";
-var commands = ['noticeme', 'bag', 'arrot', 'narbe'];
+var commands = ['noticeme', 'bag', 'arrot', 'narbe', 'help'];
 
 const noticeLines = [
   'Hello, I am Botiun. How can I help?',
