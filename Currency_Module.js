@@ -177,7 +177,7 @@ function getCurrencyThen(username, amount, callback) {
             return;
           }
         } else {
-          botiun.log(`ERROR: No user found when checking currecy for ${username}`);
+          botiun.error(`ERROR: No user found when checking currecy for ${username}`);
           return;
         }
       });

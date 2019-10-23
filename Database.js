@@ -173,8 +173,10 @@ function getNewHorseTemplate() {
   var horseTemplate = {
     name: "NAME",
     speed: 0,
+    originalSpeed: 0,
     stamina: 0,
     wildness: 0,
+    originalWildness: 0,
     age: 0,
     gender: "F",
     record: {

@@ -6,7 +6,12 @@ const accept = require('./Accept_Module.js');
 const uuid = require('uuid/v1');
 const fs = require('fs');
 
-var name = "Race Module";
+//Min Bets
+//Breed
+//Train
+//Age
+
+var _name = "Race Module";
 var commands = ["testrace", "load", "save", "new", "list", "make", "draw", "run", "finish", "claim", "racebet", "placebet", "auto", "gen", "odds", "time", "buystock", "inspect", "checkstock", "sellstock"];
 var racesAllowed = false;
 var racersLoaded = false;
@@ -59,7 +64,7 @@ function init() {
     }
 
     data = {
-      name: name
+      name: _name
     }
     resolve(data);
   });
@@ -75,7 +80,7 @@ function start() {
     prepareRaces();
 
     data = {
-      name: name
+      name: _name
     }
     resolve(data);
   });
@@ -89,7 +94,7 @@ function end() {
     forceEndRace();
 
     data = {
-      name: name
+      name: _name
     }
     resolve(data);
   });
@@ -1054,11 +1059,6 @@ function makeBet(user, amount, type, details, acrossTheBoard) {
   return betObj;
 }
 
-//Min Bets
-//Breed
-//Train
-//Age
-
 //------------------------------Stock-------------------------------------------
 let minimumStockPurchaseAmount = 1;
 
@@ -1094,14 +1094,12 @@ function buyStockIn(user, horse, amount) {
   //Figure out how much it would cost to purchase requested amount
   let horseValue = getValueOfHorse(horseName);
   let cost = Math.ceil(requestedStockAmount / 100 * horseValue);
-  console.log('cost', cost);
   //Attempt to purchase
   currency.getCurrencyThen(user, cost + '', (result) => {
-    console.log('!!!', result);
     let horseObj = horseLookup[horseName];
     let found = false;
     //TODO FIX?
-    for (username in horseObj.stock) {
+    for (username in Object.keys(horseObj.stock)) {
       if (username === user) {
         horseObj.stock[username] += requestedStockAmount;
         found = true;
@@ -1147,7 +1145,7 @@ function sellStockIn(user, horse, amount, target, sellAmount) {
     //If Botiun offer price and wait for accept
     let offerPrice = Math.ceil(housePriceMod * requestedAmount / 100 * getValueOfHorse(horseName));
     console.log(offerPrice);
-    sendMessageToUser(user, `Botiun will buy ${requestedAmount}% of ${horseObj.name} from you for ${offerPrice} ${constants.currencyName}. Type !accept to confirm this sale or !reject to deny it.`);
+    botiun.sendMessageToUser(user, `Botiun will buy ${requestedAmount}% of ${horseObj.name} from you for ${offerPrice} ${constants.currencyName}. Type !accept to confirm this sale or !reject to deny it.`);
     accept.addQuery(user, 30 * 1000, {
       user: user,
       price: offerPrice,
@@ -1156,7 +1154,21 @@ function sellStockIn(user, horse, amount, target, sellAmount) {
     }, acceptStockSaleToHouse, rejectStockSaleToHouse);
   } else {
     //Check if user exists
-    //If Other user offer oruce to other user and wait for accept
+    if (botiun.hasUser(target.toLowerCase())) {
+      currency.getCurrencyThen(user, sellAmount, (result) => {
+        botiun.sendMessageToUser(target, `${user} is offering to sell you ${requestedAmount}% of ${horseName} for ${result} ${constants.currencyName}. Type !accept to confirm the sale or !reject to deny it.`);
+        accept.addQuery(target, 30 * 1000, {
+          user: target,
+          price: result,
+          stock: requestedAmount,
+          horseName: horseName,
+          targetUser: user
+        }, acceptStockSale, rejectStockSale);
+      });
+    } else {
+      botiun.sendMessageToUser(user, 'I am sorry, it does not seem that ' + target + ' is here for the sale.');
+      return;
+    }
     //TODO
   }
 }
@@ -1164,7 +1176,7 @@ function sellStockIn(user, horse, amount, target, sellAmount) {
 //LIST!
 
 function acceptStockSaleToHouse(parameters) {
-  currency.addCurrencyToUserFrom(parameters.user, parameters.offerPrice, 'stock');
+  currency.addCurrencyToUserFrom(parameters.user, parameters.price, 'stock');
   let horse = horseLookup[parameters.horseName];
   if (!horse) {
     botiun.error("Tried to sell stock to Botiun for a horse that doesn't exist");
@@ -1175,19 +1187,41 @@ function acceptStockSaleToHouse(parameters) {
   }
   saveHorseToDB(horse);
   botiun.sendMessageToUser(parameters.user, 'Sale to Botiun has been completed.');
-  currency.addCurrencyToUserFrom(parameters.user, parameters.offerPrice, 'stock');
+  currency.addCurrencyToUserFrom(parameters.user, parameters.price, 'stock');
 }
 
 function rejectStockSaleToHouse(parameters) {
   botiun.sendMessageToUser(parameters.user, 'Sale has been canceled.');
 }
 
-function acceptStockSale() {
+function acceptStockSale(parameters) {
+  currency.getCurrencyThen(parameters.user, parameters.price + '', (result) => {
+    currency.addCurrencyToUserFrom(parameters.targetUser, parameters.price, 'stock');
+    currency.addCurrencyToUserFrom(parameters.user, -parameters.price, 'stock');
 
+    let horse = horseLookup[parameters.horseName];
+    if (!horse) {
+      botiun.error("Tried to sell stock for a horse that doesn't exist");
+    }
+    horse.stock[parameters.targetUser] -= parameters.stock;
+    if (horse.stock[parameters.targetUser] <= 0) {
+      delete(horse.stock[parameters.targetUser]);
+    }
+
+    if (horse.stock[parameters.user]) {
+      horse.stock[parameters.user] += parameters.stock;
+    } else {
+      horse.stock[parameters.user] = parameters.stock;
+    }
+
+    saveHorseToDB(horse);
+
+    botiun.sendMessage(parameters.horseName + ' stock sale from ' + parameters.targetUser + ' to ' + parameters.user + ' has been completed.');
+  });
 }
 
-function rejectStockSale() {
-
+function rejectStockSale(parameters) {
+  botiun.sendMessage(parameters.horseName + ' stock sale from ' + parameters.targetUser + ' to ' + parameters.user + ' was canceled.')
 }
 
 //------------------------------Chat---------------------------------------------
@@ -1372,7 +1406,7 @@ function saveHorseToDB(horse) {
     $set: horse
   });
   //Update internal system
-  horseLookup[getHorseNameReduced(name)] = horse;
+  horseLookup[getHorseNameReduced(horse.name)] = horse;
   for (let i = 0; i < horses.length; i++) {
     if (horses[i].name === horse.name) {
       horses[i] = horse;
@@ -1413,7 +1447,7 @@ function makeNewHorse(name, speed, wildness, gender) {
 }
 
 function generateHorses() {
-  let listOfHorses = ["Lil-Sebastian", "Night-Mare", "Butt-Stallion", "Roach", "Silver", "Ponyboy", "Mane-Attraction", "Harry-Trotter", "Mr-Ed", "Pony-Soprano", "Talk-Derby-to-Me", "Joseph-Stalling", "Unicorn", "Black-Beauty", "Maple-Stirrup", "Rein-Man", "Neigh-Sayer", "Tater-Trot", "Shadowfax", "Elmers-Revenge", "Al-Capony", "Kevin", "Dolly-Llama", "Shadowcorn", "Forrest-Jump", "Usain-Colt", "Gene"];
+  let listOfHorses = ["Lil-Sebastian", "Night-Mare", "Butt-Stallion", "Roach", "Silver", "Ponyboy", "Mane-Attraction", "Harry-Trotter", "Mr-Ed", "Pony-Soprano", "Talk-Derby-to-Me", "Joseph-Stalling", "Unicorn", "Black-Beauty", "Maple-Stirrup", "Rein-Man", "Neigh-Sayer", "Tater-Trot", "Shadowfax", "Elmers-Revenge", "Al-Capony", "Kevin", "Dolly-Llama", "Shadowcorn", "Forrest-Jump", "Usain-Colt", "Gene", "Hay-Arnold"];
 
   for (let i = 0; i < listOfHorses.length; i++) {
     makeNewHorse(listOfHorses[i]);

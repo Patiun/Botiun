@@ -21,13 +21,14 @@ const greet = require('./Greet_Module.js');
 const accept = require('./Accept_Module.js');
 const chat = require('./Chat_Module.js');
 const activity = require('./Activity_Module.js');
+const userDetails = require('./UserDetails_Module.js');
 
 const VERBOSE = true;
 const VIEWER_UPDATE_INTERVAL = 30; //Seconds
 const STREAM_UPDATE_INTERVAL = 60; //Seconds
 const S_TO_MS = 1000;
 const CURRENCY_PER_INTERVAL = 1;
-const modules = [currency, notice, race, greet, accept, chat, activity]; //gambling
+const modules = [currency, notice, race, greet, accept, chat, activity, userDetails]; //gambling
 const channel = "Patiun";
 const rooms = {
   main: "Patiun",
