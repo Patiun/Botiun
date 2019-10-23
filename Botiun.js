@@ -684,7 +684,7 @@ stdin.addListener("data", function(d) {
   }
 
   if (['todo'].includes(msgTokens[0].toLowerCase())) {
-    console.log("Horse Racing\nSounds: 69, Lewd, Wilhelm, snakes, oof\nMod entry\nEntry animations\nF integration");
+    console.log("Horse Racing\nSounds: 69, Lewd, Wilhelm, snakes, oof\nEntry animations\nF integration");
 
   }
 

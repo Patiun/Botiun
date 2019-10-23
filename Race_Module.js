@@ -12,7 +12,7 @@ const fs = require('fs');
 //Age
 
 var _name = "Race Module";
-var commands = ["testrace", "load", "save", "new", "list", "make", "draw", "run", "finish", "claim", "racebet", "placebet", "auto", "gen", "odds", "time", "buystock", "inspect", "checkstock", "sellstock"];
+var commands = ["race", "testrace", "load", "save", "new", "list", "make", "draw", "run", "finish", "claim", "racebet", "placebet", "auto", "gen", "odds", "time", "buystock", "inspect", "checkstock", "checkbets", "sellstock"];
 var racesAllowed = false;
 var racersLoaded = false;
 var canBet = false;
@@ -33,11 +33,10 @@ var derby;
 var countTopRacesForDerby = 2;
 var activeRace;
 var unclaimedPayouts = {};
-var raceBets = {};
-var payoutTimeoutDuration = 1000 * 1 //60 * 60; //60 Minutes
-var timeBetweenRaces = 1000 * 60 * 1 //30; //30 Minutes
-var timeBeforeNextDrawing = 10 * 1000; //20s
-var timeBeforeRunning = 5 * 1000; //20s
+var payoutTimeoutDuration = 1000 * 60 * 60; //60 Minutes
+var timeBetweenRaces = 1000 * 60 * 30; //30 Minutes
+var timeBeforeNextDrawing = 10 * 1000; //10s
+var timeBeforeRunning = 5 * 1000; //5s
 var timers = {};
 var timing = {
   nextRaceStart: 0,
@@ -45,6 +44,8 @@ var timing = {
   raceEnd: 0,
   raceElapsed: 0
 }
+var canRaceCommandsOutput = true;
+var raceCommandsOutputCD = 30 * 1000;
 
 function init() {
   return new Promise(function(resolve, reject) {
@@ -103,6 +104,15 @@ function end() {
 function handleCommand(userDetails, msgTokens) {
   let command = msgTokens[0].toLowerCase();
   switch (command) {
+    case "race":
+      if (canRaceCommandsOutput) {
+        botiun.sendMessage('Race commands can be found at https://docs.google.com/document/d/1B52yc2Yu5hmhbjnoH8Uber5ym4Xq2b7R_0byd7GDL9E/edit?usp=sharing');
+        canRaceCommandsOutput = false;
+        setTimeout(() => {
+          canRaceCommandsOutput = true;
+        }, raceCommandsOutputCD);
+      }
+      break;
     case "load":
       loadAllHorsesFromDB();
       break;
@@ -168,7 +178,14 @@ function handleCommand(userDetails, msgTokens) {
       }
       break;
     case "checkstock":
-      checkRaceStockFor(userDetails.username);
+      if (msgTokens[1]) {
+        checkRaceStockFor(msgTokens[1]);
+      } else {
+        checkRaceStockFor(userDetails.username);
+      }
+      break;
+    case "checkbets":
+      checkBetsFor(userDetails.username);
       break;
     case "testrace":
       if (userDetails.username === 'patiun') {
@@ -687,7 +704,7 @@ function placeBetOn(user, amount, horseParams) {
     if (horseParams.length === 3) {
       //DEFAULT CASE
       let horseNameWin = horseParams[2];
-      placeBetWin(user, result, horseNameWin)
+      placeBetWin(user, result, [horseNameWin])
       /*
       console.log(horseNameWin);
       if (horseInRace(horseNameWin)) {
@@ -1054,7 +1071,8 @@ function makeBet(user, amount, type, details, acrossTheBoard) {
       botiun.sendMessageToUser(user, "You have placed an across the board bet for " + betObj.amount + " on " + horsesOrderedOutput);
     }
   } else {
-    botiun.sendMessageToUser(user, "You have placed a " + betObj.type + " bet for " + betObj.amount + " on " + horsesOrderedOutput);
+    betObj.message = betObj.type + " bet for " + betObj.amount + " on " + horsesOrderedOutput;
+    botiun.sendMessageToUser(user, "You have placed a " + betObj.message);
   }
   return betObj;
 }
@@ -1277,7 +1295,7 @@ function inspectHorse(user, horse) {
 
 function checkRaceStockFor(user) {
   let horseCount = 0;
-  let outputTxt = 'Stock:';
+  let outputTxt = 'Stock for ' + user + ':';
   for (horse in horseLookup) {
     for (username in horseLookup[horse].stock) {
       if (username === user) {
@@ -1289,8 +1307,30 @@ function checkRaceStockFor(user) {
   if (horseCount > 0) {
     outputTxt = outputTxt.substring(0, outputTxt.length - 1);
   } else {
-    outputTxt = 'You have no stock in horses.';
+    outputTxt = user + ' has no stock in horses.';
   }
+  botiun.sendMessageToUser(user, outputTxt);
+}
+
+function checkBetsFor(user) {
+
+  let outputTxt = 'Bets:'
+  let betCount = 0;
+  for (i in bets) {
+    let bet = bets[i];
+    if (bet.user === user) {
+      if (betCount > 0) {
+        outputTxt += ',';
+      }
+      outputTxt += ' ' + bet.message;
+      betCount++;
+    }
+  }
+
+  if (outputTxt === 'Bets:') {
+    outputTxt = 'You have no bets placed for this race.';
+  }
+
   botiun.sendMessageToUser(user, outputTxt);
 }
 
@@ -1447,7 +1487,7 @@ function makeNewHorse(name, speed, wildness, gender) {
 }
 
 function generateHorses() {
-  let listOfHorses = ["Lil-Sebastian", "Night-Mare", "Butt-Stallion", "Roach", "Silver", "Ponyboy", "Mane-Attraction", "Harry-Trotter", "Mr-Ed", "Pony-Soprano", "Talk-Derby-to-Me", "Joseph-Stalling", "Unicorn", "Black-Beauty", "Maple-Stirrup", "Rein-Man", "Neigh-Sayer", "Tater-Trot", "Shadowfax", "Elmers-Revenge", "Al-Capony", "Kevin", "Dolly-Llama", "Shadowcorn", "Forrest-Jump", "Usain-Colt", "Gene", "Hay-Arnold"];
+  let listOfHorses = ["Lil-Sebastian", "Night-Mare", "Butt-Stallion", "Roach", "Silver", "Ponyboy", "Mane-Attraction", "Harry-Trotter", "Mr-Ed", "Pony-Soprano", "Talk-Derby-to-Me", "Joseph-Stalling", "Unicorn", "Black-Beauty", "Maple-Stirrup", "Rein-Man", "Neigh-Sayer", "Tater-Trot", "Shadowfax", "Elmers-Revenge", "Al-Capony", "Kevin", "Dolly-Llama", "Shadowcorn", "Forrest-Jump", "Usain-Colt", "Gene", "Hay-Arnold", "Phobos"];
 
   for (let i = 0; i < listOfHorses.length; i++) {
     makeNewHorse(listOfHorses[i]);
