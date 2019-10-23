@@ -68,6 +68,11 @@ function greetUser(username) {
           alreadyGreeted.push(username);
           botiun.playSound('/Welcome-Shrek.mp3');
         }
+        if (user.isMod && user.config.entranceAlert) {
+          console.log("Welcoming " + username + "!");
+          alreadyGreeted.push(username);
+          botiun.playSound('/Welcome_imperial_march.mp3');
+        }
       }
     });
   } else {
