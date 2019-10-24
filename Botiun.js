@@ -51,7 +51,7 @@ var currentUsers = [];
 var ignoredUsers = [];
 var alertedUsers = [];
 var live = false;
-var allowedToPost = false;
+var allowedToPost = true;
 var streamObject = {};
 const opts = {
   options: constants.options,
@@ -649,6 +649,10 @@ module.exports.sendAction = sendAction = function(msg, room) {
 
 module.exports.hasUser = hasUser = function(username) {
   return currentUsers.includes(username) || currentUsers.includes(username.toLowerCase());
+}
+
+module.exports.getCurrentUsers = getCurrentUsers = function() {
+  return currentUsers;
 }
 
 //Console Input Handler

@@ -3,7 +3,7 @@ const botiun = require('./Botiun.js');
 const database = require('./database.js');
 
 var name = "Chat Module";
-var commands = ['markov', 'impersonate'];
+var commands = ['markov', 'impersonate', 'chatcount', 'randomsong'];
 
 var loggingData = {};
 const MIN_TIME_BETWEEN_POST = 5 * 1000;
@@ -59,9 +59,49 @@ function handleCommand(userDetails, msgTokens) {
         return;
       }
       break;
+    case 'chatcount':
+      let user = msgTokens[1] || userDetails.username;
+      tellChatCountFor(user.toLowerCase());
+      break;
+    case 'randomsong':
+      if (userDetails.mod || userDetails.username === 'patiun') {
+        let target = msgTokens[1] || userDetails.username;
+        requestRandomSongFor(target.toLowerCase());
+      }
+      break;
     default:
       break;
   }
+}
+
+//------------------------------Random Song-----------------------------------
+
+function requestRandomSongFor(user) {
+  getChatHistoryForUser(user).then((result) => {
+    let history = result[0];
+    if (!history) {
+      botiun.error('No history for ' + user);
+      return;
+    }
+
+    let songs = [];
+
+    for (i in history.commands) {
+      let command = history.commands[i].message;
+      if (command.toLowerCase().slice(0, 3) === '!sr') {
+        songs.push(command);
+      }
+    }
+
+    console.log(songs);
+
+    if (songs.length > 0) {
+      botiun.sendMessage(songs[Math.floor(Math.random() * songs.length)]);
+    } else {
+      botiun.sendMessage('No songs to request for ' + user);
+    }
+
+  });
 }
 
 //------------------------------Markov Chain----------------------------------
@@ -108,7 +148,6 @@ function impersonate(user, chain, maxPosts) {
 }
 
 //TODO
-//Keep Colons
 //Imperonate all
 //Impersonate more than one person
 
@@ -127,7 +166,7 @@ function impersonatePost(user, chain, maxPosts) {
           outputTxt += ' ' + nextKey;
         }
       } else {
-        console.log('ERROR - ' + nextKey + '/' + reducedKey + ' didnt have a thing');
+        console.log('ERROR - ' + nextKey + '/' + reducedKey + ' didnt have a markov chain entry.');
         nextKey = chain['newlinehere'][Math.floor(Math.random() * chain['newlinehere'].length)];
       }
     }
@@ -158,6 +197,17 @@ function checkMessageForInteraction(userDetails, message) {
 
 function getArrayIntersection(array1, array2) {
   return array1.filter(value => array2.includes(value))
+}
+
+function tellChatCountFor(user) {
+  getChatHistoryForUser(user).then((result) => {
+    let history = result[0];
+    if (history) {
+      botiun.sendMessage(user + ' has sent ' + history.messages.length + ' messages and used ' + history.commands.length + ' commands.');
+    } else {
+      botiun.sendMessage('No chat history for ' + user);
+    }
+  })
 }
 
 //------------------------------Logging----------------------------------------
