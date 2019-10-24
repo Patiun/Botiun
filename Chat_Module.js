@@ -44,19 +44,20 @@ function handleCommand(userDetails, msgTokens) {
   switch (command) {
     case 'impersonate':
     case 'markov':
-      if (userDetails.username != 'patiun') {
+      if (userDetails.username === 'patiun' || userDetails.username === 'leonv3x') {
+        let user = msgTokens[1] || 'patiun';
+        user = user.toLowerCase();
+        let postCount = msgTokens[2] || 5;
+        postCount = parseInt(postCount);
+        chatHistoryToText(user).then((text) => {
+          const chain = markovChainGen(text);
+          impersonate(user, chain, postCount);
+        }).catch((user) => {
+          console.log('error Markoving ' + user);
+        });
+      } else {
         return;
       }
-      let user = msgTokens[1] || 'patiun';
-      user = user.toLowerCase();
-      let postCount = msgTokens[2] || 5;
-      postCount = parseInt(postCount);
-      chatHistoryToText(user).then((text) => {
-        const chain = markovChainGen(text);
-        impersonate(user, chain, postCount);
-      }).catch((user) => {
-        console.log('error Markoving ' + user);
-      });
       break;
     default:
       break;
@@ -85,12 +86,12 @@ function markovChainGen(text) {
   const textArr = text.split(' ');
   const markovChain = {};
   for (let i = 0; i < textArr.length; i++) {
-    let word = textArr[i].toLowerCase().replace(/[\W_]/, "")
+    let word = textArr[i].toLowerCase().replace(/[\W_]/, "");
     if (!markovChain[word]) {
       markovChain[word] = []
     }
     if (textArr[i + 1]) {
-      markovChain[word].push(textArr[i + 1].toLowerCase().replace(/[\W_]/, ""));
+      markovChain[word].push(textArr[i + 1]); //.toLowerCase()); //.replace(/[\W_]/, ""));
     }
   }
   return markovChain
@@ -100,32 +101,47 @@ var postCount = 0;
 var postTimer;
 
 function impersonate(user, chain, maxPosts) {
-  botiun.sendMessage('/me is now impersonate ' + user);
+  botiun.sendMessage('/me is now impersonating ' + user);
   postCount = 0;
   clearTimeout(postTimer);
   impersonatePost(user, chain, maxPosts);
 }
 
+//TODO
+//Keep Colons
+//Imperonate all
+//Impersonate more than one person
+
 function impersonatePost(user, chain, maxPosts) {
-  postCount++;
-  let startingPoint = chain['newlinehere'][Math.floor(Math.random() * chain['newlinehere'].length)];
+  try {
+    postCount++;
+    let startingPoint = chain['newlinehere'][Math.floor(Math.random() * chain['newlinehere'].length)];
 
-  let outputTxt = startingPoint;
-  let nextKey = startingPoint;
-  while (nextKey != 'newlinehere') {
-    nextKey = chain[nextKey][Math.floor(Math.random() * chain[nextKey].length)];
-    if (nextKey != 'newlinehere') {
-      outputTxt += ' ' + nextKey;
+    let outputTxt = startingPoint;
+    let nextKey = startingPoint;
+    while (nextKey != 'newlinehere') {
+      let reducedKey = nextKey.toLowerCase().replace(/[\W_]/, "");
+      if (chain[reducedKey]) {
+        nextKey = chain[reducedKey][Math.floor(Math.random() * chain[reducedKey].length)];
+        if (nextKey != 'newlinehere') {
+          outputTxt += ' ' + nextKey;
+        }
+      } else {
+        console.log('ERROR - ' + nextKey + '/' + reducedKey + ' didnt have a thing');
+        nextKey = chain['newlinehere'][Math.floor(Math.random() * chain['newlinehere'].length)];
+      }
     }
-  }
-  botiun.sendMessage(outputTxt);
+    botiun.sendMessage(outputTxt);
 
-  if (postCount <= maxPosts) {
-    setTimeout(() => {
-      impersonatePost(user, chain, maxPosts);
-    }, Math.random() * (MAX_TIME_BETWEEN_POST - MIN_TIME_BETWEEN_POST) + MIN_TIME_BETWEEN_POST);
-  } else {
-    botiun.sendMessage('/me is done impersonating ' + user);
+    if (postCount < maxPosts) {
+      setTimeout(() => {
+        impersonatePost(user, chain, maxPosts);
+      }, Math.random() * (MAX_TIME_BETWEEN_POST - MIN_TIME_BETWEEN_POST) + MIN_TIME_BETWEEN_POST);
+    } else {
+      botiun.sendMessage('/me is done impersonating ' + user);
+    }
+  } catch (e) {
+    botiun.error(e);
   }
 }
 

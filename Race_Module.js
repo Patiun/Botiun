@@ -16,7 +16,7 @@ var commands = ["race", "testrace", "load", "save", "new", "list", "make", "draw
 var racesAllowed = false;
 var racersLoaded = false;
 var canBet = false;
-var canPostMessages = false;
+var canPostMessages = true;
 var auto = false;
 var oddsLookup = {};
 var bets = [];
@@ -34,7 +34,7 @@ var countTopRacesForDerby = 2;
 var activeRace;
 var unclaimedPayouts = {};
 var payoutTimeoutDuration = 1000 * 60 * 60; //60 Minutes
-var timeBetweenRaces = 1000 * 60 * 30; //30 Minutes
+var timeBetweenRaces = 1000 * 60 * 20; //20 Minutes
 var timeBeforeNextDrawing = 10 * 1000; //10s
 var timeBeforeRunning = 5 * 1000; //5s
 var timers = {};
@@ -513,8 +513,10 @@ function endRace() {
   stockPayOut(activeRace.places[0]);
   setTimeout(() => {
     botiun.emit('raceClear');
-    if (auto) {
-      setNextRace();
+    if (racesAllowed) {
+      if (auto) {
+        setNextRace();
+      }
     }
   }, timeBeforeNextDrawing); //Seconds until clear
 
