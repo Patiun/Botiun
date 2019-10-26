@@ -316,7 +316,7 @@ function onJoinHandler(target, username, self) {
   JoinUser(username);
 }
 
-function joinUser(username, userType) {
+function joinUser(username, userType, userDetails) {
   if (ignoredUsers.includes(username)) {
     return;
   }
@@ -363,14 +363,14 @@ function joinUser(username, userType) {
         }
         console.log("Join Data:", username, userType);
 
-        if (userType) {
+        if (userType && userDetails) {
           if (userType.toLowerCase() === 'vips') {
             updateLoad['$set']['isVIP'] = true;
           }
-          if (userType.toLowerCase() === 'sub') {
+          if (userType.toLowerCase() === 'sub' || userDetails.subscriber) {
             updateLoad['$set']['isSub'] = true;
           }
-          if (userType.toLowerCase() === 'mod' || userType.toLowerCase() === 'moderator') {
+          if (userType.toLowerCase() === 'mod' || userType.toLowerCase() === 'moderator' || userDetails.mod) {
             updateLoad['$set']['isMod'] = true;
           }
         }
@@ -451,9 +451,9 @@ function onMessageHandler(target, context, msg, self) {
   if (live) {
     if (!currentUsers.includes[username]) {
       if (context.subscriber) {
-        joinUser(username, "sub")
+        joinUser(username, "sub", context)
       }
-      joinUser(username, 'viewers');
+      joinUser(username, 'viewers', context);
     }
 
     //DATABASE CALL: UPDATE MESSAGES FOR STREAM
