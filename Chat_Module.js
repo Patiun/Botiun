@@ -17,6 +17,11 @@ function init() {
       name: name
     }
 
+    /*
+    chatHistoryToText('weaver42').then((text) => {
+      console.log(markovChainGenDouble(text));
+    });
+    */
     loggingData = {};
   });
 }
@@ -92,7 +97,7 @@ function handleCommand(userDetails, msgTokens) {
       tellChatCountFor(user.toLowerCase());
       break;
     case 'randomsong':
-      if (userDetails.mod || userDetails.username === 'patiun') {
+      if (userDetails.username === 'patiun' || userDetails.username === 'leonv3x') {
         let target = msgTokens[1] || userDetails.username;
         requestRandomSongFor(target.toLowerCase());
       }
@@ -160,7 +165,7 @@ function requestRandomSongFor(user) {
 
 function chatHistoryToText(user) {
   return new Promise((resolve, reject) => {
-    getChatHistoryForUser(user).then((chatHistory) => {
+    getChatHistoryForUser(user.toLowerCase()).then((chatHistory) => {
       if (!chatHistory[0]) {
         reject(user);
         return;
@@ -184,6 +189,24 @@ function markovChainGen(text) {
     }
     if (textArr[i + 1]) {
       markovChain[word].push(textArr[i + 1]); //.toLowerCase()); //.replace(/[\W_]/, ""));
+    }
+  }
+  return markovChain
+}
+
+function markovChainGenDouble(text) {
+  const textArr = text.split(' ');
+  const markovChain = {};
+  for (let i = 0; i < textArr.length - 1; i++) {
+    let word1 = textArr[i].toLowerCase().replace(/[\W_]/, "");
+    let word2 = textArr[i + 1].toLowerCase().replace(/[\W_]/, "");
+    let key = [word1, word2];
+
+    if (!markovChain[key]) {
+      markovChain[key] = []
+    }
+    if (textArr[i + 1]) {
+      markovChain[key].push(textArr[i + 2]); //.toLowerCase()); //.replace(/[\W_]/, ""));
     }
   }
   return markovChain
@@ -229,9 +252,6 @@ async function chatBetween(user1, user2, maxPosts) {
   impersonatePost(user1, chain1, maxPosts, true, user2, chain2);
 }
 
-//TODO
-//Imperonate all
-
 function impersonatePost(user, chain, maxPosts, sayName, otherUser, otherChain) {
   try {
     isImpersonating = true;
@@ -248,7 +268,13 @@ function impersonatePost(user, chain, maxPosts, sayName, otherUser, otherChain) 
     let nextKey = startingPoint;
     while (nextKey != 'newlinehere') {
       //console.log(nextKey);
-      let reducedKey = nextKey.toLowerCase().replace(/[\W_]/, "");
+      let reducedKey
+      if (!nextKey) {
+        botiun.error("nextKey was invalid at line 271.");
+        reducedKey = 'INVALID_DATA_0100017';
+      } else {
+        reducedKey = nextKey.toLowerCase().replace(/[\W_]/, "");
+      }
       if (chain[reducedKey]) {
         nextKey = chain[reducedKey][Math.floor(Math.random() * chain[reducedKey].length)];
         if (nextKey != 'newlinehere') {
@@ -259,7 +285,8 @@ function impersonatePost(user, chain, maxPosts, sayName, otherUser, otherChain) 
         nextKey = chain['newlinehere'][Math.floor(Math.random() * chain['newlinehere'].length)];
       }
     }
-    console.log("POSTED " + outputTxt);
+    //console.log("POSTED " + outputTxt);
+    botiun.sendTTS(outputTxt);
     botiun.sendMessage(outputTxt);
 
     if (postCount < maxPosts) {
@@ -282,6 +309,7 @@ function impersonatePost(user, chain, maxPosts, sayName, otherUser, otherChain) 
       }
       isImpersonating = false;
     }
+
   } catch (e) {
     console.log("SOMETHING WENT WRONG");
     botiun.error(e);

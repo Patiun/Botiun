@@ -13,6 +13,23 @@ const opts = {
 
 const URL_BASE = "https://api.streamelements.com/kappa/v2/";
 
+function getLeaderboard() {
+  var url = URL_BASE + "points/" + constants.streamElementsAccountId + "/top";
+  const options = {
+    method: 'GET',
+    url: url,
+    json: true
+  };
+
+  return rp(options).then((body) => {
+    //console.log(body);
+    return body.users;
+  }).catch((error) => {
+    console.log(error);
+    return [];
+  });
+}
+
 function getPointsForUser(user, amount, callback) {
   var url = URL_BASE + "points/" + constants.streamElementsAccountId + "/" + user;
 
@@ -63,6 +80,7 @@ function updatePointsForUser(user, amount) {
 }
 
 module.exports = {
+  getLeaderboard: getLeaderboard,
   getPointsForUser: getPointsForUser,
   updatePointsForUser: updatePointsForUser
 }

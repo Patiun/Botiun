@@ -22,6 +22,7 @@ const accept = require('./Accept_Module.js');
 const chat = require('./Chat_Module.js');
 const activity = require('./Activity_Module.js');
 const userDetails = require('./UserDetails_Module.js');
+const se = require('./StreamElements.js');
 
 const VERBOSE = true;
 const VIEWER_UPDATE_INTERVAL = 30; //Seconds
@@ -52,6 +53,11 @@ var ignoredUsers = [];
 var alertedUsers = [];
 var live = false;
 var allowedToPost = true;
+var canTTS = true;
+if (process.argv.length > 2 && ['debug', 'silent'].includes(process.argv[2].toLowerCase())) {
+  console.log("Silent mode activated.");
+  allowedToPost = false;
+}
 var streamObject = {};
 const opts = {
   options: constants.options,
@@ -443,6 +449,15 @@ function onMessageHandler(target, context, msg, self) {
   if (self) {
     return;
   }
+
+  if (context.username === 'streamelements') {
+    let msgTokens = msg.split(' ');
+    //log( "StreamElements sent a message" );
+    if (msgTokens.includes("Orcs") && msgTokens.includes("Beefy") && msgTokens.includes("Negotiable")) {
+      io.sockets.emit('orc', "/OrcDanceThankYouNext.mp3");
+    }
+  }
+
   var username = context['username'];
   //log( `Incoming message from ${username}: "${msg}"` );
   chat.recordChatMessage(context, msg);
@@ -484,10 +499,6 @@ function onMessageHandler(target, context, msg, self) {
     //Strip the ! from the commands
     msgTokens[0] = msgTokens[0].substr(1, msgTokens[0].length);
     handleCommands(target, context, self, msgTokens);
-  }
-
-  if (username === 'streamelements') {
-    //log( "StreamElements sent a message" );
   }
 }
 
@@ -587,6 +598,33 @@ function handleCommands(target, context, self, msgTokens) {
   //log( `Command "${msgTokens[0]}" from ${username} is not a valid command` );
 }
 
+let ttsStart = 'tts';
+let ttsEnd = '.wav';
+let ttsCount = 0;
+let ttsFile = ttsStart + ttsCount + ttsEnd;
+
+module.exports.sendTTS = sendTTS = function(text, voice) {
+
+  fs.unlink('./Sounds/' + ttsFile, (e) => {
+    if (e) {
+      error(e);
+    }
+    var say = require('say');
+    let ttsVoice = voice || null;
+    ttsFile = ttsStart + ttsCount + ttsEnd;
+
+    say.export(text, ttsVoice, 1.0, './Sounds/' + ttsFile, (err) => {
+      if (err) {
+        error(err);
+        return;
+      }
+
+      playSound('/' + ttsFile);
+      ttsCount++;
+    })
+  })
+}
+
 module.exports.playSound = playSound = function(soundFileName) {
   //Check if sound exists
   emit('playSound', soundFileName);
@@ -656,13 +694,21 @@ module.exports.getCurrentUsers = getCurrentUsers = function() {
 }
 
 //Console Input Handler
-stdin.addListener("data", function(d) {
+stdin.addListener("data", async function(d) {
   var msg = d.toString().trim();
   var msgStripped = msg.trim();
   var msgTokens = msgStripped.split(' ');
   if (msg === "play") {
     console.log("SENDING PLAY");
     io.sockets.emit('playSound', "/Welcome-Shrek.mp3");
+  }
+  if (msg === "playmod") {
+    console.log("SENDING PLAY");
+    io.sockets.emit('playSound', "/Welcome_imperial_march.mp3");
+  }
+  if (msg === "cantts") {
+    canTTS = !canTTS;
+    log("TTS is now " + canTTS);
   }
 
   if (['end'].includes(msgTokens[0].toLowerCase())) {
@@ -678,8 +724,52 @@ stdin.addListener("data", function(d) {
     log(currentUsers);
   }
 
+  if (['tts'].includes(msgTokens[0].toLowerCase())) {
+    sendTTS(msg.substr(4));
+  }
+
   if (['say'].includes(msgTokens[0].toLowerCase())) {
     sendMessage(msg.substr(4));
+  }
+
+  if (['orc'].includes(msgTokens[0].toLowerCase())) {
+    io.sockets.emit('orc', "/OrcDanceThankYouNext.mp3");
+  }
+
+  if (['top'].includes(msgTokens[0].toLowerCase())) {
+    console.log(await se.getLeaderboard());
+  }
+
+  if (['vip'].includes(msgTokens[0].toLowerCase())) {
+    //GET ELIGIBLE VIPS
+    let leaderboard = await se.getLeaderboard();
+    let users = [];
+    await database.get(constants.collectionUsers, {
+      $or: [{
+        isVIP: true
+      }, {
+        isMod: true
+      }]
+    }).then((result) => {
+      if (result.length > 0) {
+        for (let i in result) {
+          let user = result[i];
+          users.push(user.twitchID);
+        }
+      }
+    });
+
+    for (let i in leaderboard) {
+      let entry = leaderboard[i];
+      if (users.includes(entry.username)) {
+        leaderboard.splice(i, 1);
+      }
+    }
+
+    //console.log(leaderboard)
+    for (let i = 0; i < 5; i++) {
+      console.log((i + 1) + ") " + leaderboard[i].username + ": " + leaderboard[i].points);
+    }
   }
 
   if (['post'].includes(msgTokens[0].toLowerCase())) {

@@ -26,7 +26,7 @@ var horseLookup = {};
 var raceCount = 4;
 var raceTickPerSec = 60; //24;
 var raceTickDuration = 1000 / raceTickPerSec; //100; //MS
-var staminaDrain = 100;
+var staminaDrain = 150;
 var maxWildGain = 12.5;
 var races = [];
 var derby;
@@ -76,7 +76,9 @@ function start() {
 
     racesAllowed = true;
     console.log("Races are now allowed to run");
-
+    for (let i in horses) {
+      horses[i].dayMod = ((Math.random() + Math.random()) / 2) * 0.3 + 0.8;
+    }
     auto = true;
     prepareRaces();
 
@@ -132,7 +134,8 @@ function handleCommand(userDetails, msgTokens) {
       setNextRace();
       break;
     case "run":
-      startRace();
+      showRace();
+      //startRace();
       break;
     case "finish":
       endRace();
@@ -261,7 +264,6 @@ function prepareRaces() {
       tempHorse.progress = 0;
       tempHorse.place = -1;
       tempHorse.stamina = 100;
-      tempHorse.dayMod = ((Math.random() + Math.random()) / 2) * 0.3 + 0.8;
       newRace.horses.push(tempHorse);
     }
     races.push(newRace);
@@ -358,11 +360,14 @@ function raceDrawOdds() {
 }
 
 function showRace() {
-  botiun.emit('racePrepare', populateRaceOverlay());
+  botiun.playSound('horse-race.mp3');
+  setTimeout(() => {
+    botiun.emit('racePrepare', populateRaceOverlay());
 
-  timers.nextRace = setTimeout(() => {
-    startRace();
-  }, timeBeforeRunning);
+    timers.nextRace = setTimeout(() => {
+      startRace();
+    }, timeBeforeRunning);
+  }, 10.25 * 1000);
 }
 
 function waitForRaceToStart() {
@@ -405,7 +410,7 @@ function advanceHorse(horse) {
   if (horse.progress >= 0 && horse.progress < 100) {
     //let amount = (horse.speed / ((Math.random() * 15) + 45)) * ((Math.random() * 0.4) + 0.35);
     let wildness = (horse.wildness / 100);
-    let avgGainUnModed = (((horse.speed) / 10 + wildness) / raceTickPerSec) * horse.dayMod;
+    let avgGainUnModed = (((horse.speed) / 10 + wildness) / raceTickPerSec) * (horse.dayMod || 1);
     //Adjust avgGain for stamina drain
     let avgGain = avgGainUnModed * (horse.stamina / 100 * 0.5 + 0.5);
     let gain = avgGain + (maxWildGain / raceTickPerSec) * ((Math.random() + Math.random()) / 2 * (wildness) - (wildness) / 2);
@@ -420,7 +425,7 @@ function advanceHorse(horse) {
         horse.stamina = 100;
       }
     }
-    horse.progress += (gain);
+    horse.progress += (gain / 1.25);
   }
   if (!activeRace.places.includes(horse) && horse.progress >= 100) {
     //console.log(`${horse.name} has finished!`);
@@ -506,6 +511,10 @@ function endRace() {
     for (let i = 0; i < countTopRacesForDerby; i++) {
       activeRace.places[i].progress = 0;
       activeRace.places[i].place = -1;
+      activeRace.places[i].stamina += 20;
+      if (activeRace.places[i].stamina > 100) {
+        activeRace.places[i].stamina = 100;
+      }
       derby.horses.push(activeRace.places[i]);
       console.log(activeRace.places[i].name + " qualified for the Derby!");
     }
@@ -695,13 +704,17 @@ function placeBetOn(user, amount, horseParams) {
     return;
   }
 
-  if (amount.toLowerCase() != 'all' && isNaN(amount)) {
+  if (amount.toLowerCase() != 'all' && isNaN(amount) && amount > 0) {
     botiun.sendMessage('Proper usage of PlaceBet is "!placebet [AMOUNT] [BETTING TARGET]"');
     return;
   }
 
   currency.getCurrencyThen(user, amount, (result) => {
     //console.log("[!!!] " + result);
+    if (result === 0) {
+      botiun.sendMessage('You cannot place a 0 cost bet.');
+      return;
+    }
     //Win - Comes in first
     if (horseParams.length === 3) {
       //DEFAULT CASE
@@ -1127,7 +1140,11 @@ function buyStockIn(user, horse, amount) {
       }
     }
     if (!found) {
-      horseObj.stock[user] = requestedStockAmount;
+      if (horseObj.stock[user] && horseObj.stock[user] > 0) {
+        horseObj.stock[user] += requestedStockAmount;
+      } else {
+        horseObj.stock[user] = requestedStockAmount;
+      }
     }
     saveHorseToDB(horseObj);
     currency.addCurrencyToUserFrom(user, -cost, 'stock');

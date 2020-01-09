@@ -19,6 +19,12 @@
       var embedSource = '<embed hidden="true" autostart="true" loop="false" src="' + filename + '.mp3">';
       document.getElementById("sound").innerHTML = '<audio autoplay="autoplay">' + mp3Source + oggSource + embedSource + '</audio>';
     }*/
+
+    function speakMessage(text) {
+      var msg = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.speak(msg);
+    }
+
     //Option 2
     function playSound(audioFileName) {
       console.log("Trying to play sound " + audioFileName);
@@ -34,6 +40,12 @@
 
     $(function() {
       var socket = io();
+      //TTS
+      socket.on('tts', function(rawData) {
+        let text = rawData.text;
+        let voice = rawData.voice || "DEFAULT";
+        speakMessage(text);
+      });
       //Play Sound
       socket.on('playSound', function(audioFileName) {
         console.log("Recieved play");
@@ -60,11 +72,21 @@
         console.log("Recieved raceClear");
         $('#race-container').html(null);
       });
+      socket.on('orc', function(orcMusic) {
+        console.log("received orc");
+        var ran = Math.random() * 1000;
+        $('#orcDiv').html(` <img id = 'orc' src = 'BeefyOrc.gif?${ran}' / > `);
+        playSound(orcMusic);
+        setTimeout(() => {
+          $('#orcDiv').html(null);
+        }, 10.6 * 1000);
+      });
     });
   </script>
 </head>
 
 <body>
+  <div id='orcDiv'></div>
   <div id='container'>
     <div class='display' style='display:none;'>
     </div>
